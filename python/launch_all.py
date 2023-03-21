@@ -78,16 +78,18 @@ methods_params = []
 
 methods_params.append({'method': 'BayesPredictor', 'order0': False})
 methods_params.append({'method': 'BayesPredictor_order0', 'order0': True})
+methods_params.append({'method': 'ProbabilisticBayesPredictor'})
 
-for max_leaf_nodes in [50, 100, 200, 400, 600]:
-    for max_iter in [100, 200, 300]:
-        for min_samples_leaf in [10, 20, 50]:
-            methods_params.append({'method': 'GBRT',
-                                   'n_iter_no_change': 10,
-                                   'max_leaf_nodes': max_leaf_nodes,
-                                   'max_iter': max_iter,
-                                   'min_samples_leaf': min_samples_leaf
-                                   })
+
+# for max_leaf_nodes in [50, 100, 200, 400, 600]:
+#     for max_iter in [100, 200, 300]:
+#         for min_samples_leaf in [10, 20, 50]:
+#             methods_params.append({'method': 'GBRT',
+#                                    'n_iter_no_change': 10,
+#                                    'max_leaf_nodes': max_leaf_nodes,
+#                                    'max_iter': max_iter,
+#                                    'min_samples_leaf': min_samples_leaf
+#                                    })
 
 mlp_depths = [1, 2, 5]
 width_factors = [1, 5, 10]
@@ -95,53 +97,53 @@ weight_decays = [1e-6, 1e-5, 1e-4, 1e-3]
 learning_rates = [1e-2, 5e-3, 1e-3, 5e-4]
 neumann_depths = [20]
 
-for add_mask in [True, False]:
-    for mlp_d in mlp_depths:
-        for wf in width_factors:
-            for wd in weight_decays:
-                for lr in learning_rates:
-                    if add_mask:
-                        name = 'oracleMLPPytorch_mask'
-                    else:
-                        name = 'oracleMLPPytorch'
-                    methods_params.append({'method': name,
-                                           'add_mask': add_mask,
-                                           'mdm': args.mdm,
-                                           'n_epochs': 1000,
-                                           'batch_size': 100,
-                                           'lr': lr,
-                                           'weight_decay': wd,
-                                           'early_stopping': True,
-                                           'optimizer': 'adam',
-                                           'width_factor': wf,
-                                           'mlp_depth': mlp_d,
-                                           'init_type': 'uniform',
-                                           'verbose': False})
+# for add_mask in [True, False]:
+#     for mlp_d in mlp_depths:
+#         for wf in width_factors:
+#             for wd in weight_decays:
+#                 for lr in learning_rates:
+#                     if add_mask:
+#                         name = 'oracleMLPPytorch_mask'
+#                     else:
+#                         name = 'oracleMLPPytorch'
+#                     methods_params.append({'method': name,
+#                                            'add_mask': add_mask,
+#                                            'mdm': args.mdm,
+#                                            'n_epochs': 1000,
+#                                            'batch_size': 100,
+#                                            'lr': lr,
+#                                            'weight_decay': wd,
+#                                            'early_stopping': True,
+#                                            'optimizer': 'adam',
+#                                            'width_factor': wf,
+#                                            'mlp_depth': mlp_d,
+#                                            'init_type': 'uniform',
+#                                            'verbose': False})
 
 
-for add_mask in [True, False]:
-    for imp_type in ['mean', 'MICE']:
-        for mlp_d in mlp_depths:
-            for wf in width_factors:
-                for wd in weight_decays:
-                    for lr in learning_rates:
-                        if add_mask:
-                            name = imp_type + 'MLPPytorch_mask'
-                        else:
-                            name = imp_type + 'MLPPytorch'
-                        methods_params.append({'method': name,
-                                               'add_mask': add_mask,
-                                               'imputation_type': imp_type,
-                                               'n_epochs': 1000,
-                                               'batch_size': 100,
-                                               'lr': lr,
-                                               'weight_decay': wd,
-                                               'early_stopping': True,
-                                               'optimizer': 'adam',
-                                               'mlp_depth': mlp_d,
-                                               'width_factor': wf,
-                                               'init_type': 'uniform',
-                                               'verbose': False})
+# for add_mask in [True, False]:
+#     for imp_type in ['mean', 'MICE']:
+#         for mlp_d in mlp_depths:
+#             for wf in width_factors:
+#                 for wd in weight_decays:
+#                     for lr in learning_rates:
+#                         if add_mask:
+#                             name = imp_type + 'MLPPytorch_mask'
+#                         else:
+#                             name = imp_type + 'MLPPytorch'
+#                         methods_params.append({'method': name,
+#                                                'add_mask': add_mask,
+#                                                'imputation_type': imp_type,
+#                                                'n_epochs': 1000,
+#                                                'batch_size': 100,
+#                                                'lr': lr,
+#                                                'weight_decay': wd,
+#                                                'early_stopping': True,
+#                                                'optimizer': 'adam',
+#                                                'mlp_depth': mlp_d,
+#                                                'width_factor': wf,
+#                                                'init_type': 'uniform',
+#                                                'verbose': False})
 
 
 for init in ['uniform']:
