@@ -9,7 +9,8 @@ from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import HistGradientBoostingRegressor
 from estimators import ImputeMLPPytorch, OracleImputeMLPPytorch
 from ground_truth import BayesPredictor_GSM_nonlinear,\
-                         BayesPredictor_MCAR_MAR_nonlinear
+                         BayesPredictor_MCAR_MAR_nonlinear,\
+                         ProbabilisticBayesPredictor
 from tqdm import tqdm
 import torch
 location = './cachedir'
@@ -86,7 +87,7 @@ def update_method_params(method, method_params, data_params=None):
         params['Sigma'] = cov
         params['mu'] = mean
 
-    if method in ['BayesPredictor', 'BayesPredictor_order0']:
+    if method in ['BayesPredictor', 'BayesPredictor_order0', 'ProbabilisticBayesPredictor']:
         params['data_params'] = data_params
 
     return params
@@ -111,7 +112,9 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
         method, method_params, data_params)
 
     # Get method name and initialize estimator
-    if 'BayesPredictor' in method:
+    if method == "ProbabilisticBayesPredictor":
+        est = ProbabilisticBayesPredictor
+    elif 'BayesPredictor' in method:
         if mdm == 'gaussian_sm':
             est = BayesPredictor_GSM_nonlinear
         elif mdm in ['MCAR', 'MAR']:
@@ -176,6 +179,9 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
             y_train_val_es = y[(n_test + n_val_half):]
             reg = est(**updated_method_params)
             reg.fit(X_train_val_es, y_train_val_es)
+        elif method ==  'ProbabilisticBayesPredictor':
+            reg = est(mdm=mdm, **updated_method_params)
+            reg.fit(X_train, y_train)
         elif method in ['BayesPredictor', 'BayesPredictor_order0']:
             reg = est(**updated_method_params)
             reg.fit(X_train, y_train)
