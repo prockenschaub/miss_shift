@@ -18,8 +18,8 @@ memory = Memory(location, verbose=0)
 
 
 # Result item to create the DataFrame in a consistent way.
-fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test',
-          'R2_train', 'R2_val', 'R2_test',
+fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m',
+          'R2_train', 'R2_val', 'R2_test', 'R2_test_m',
           'early_stopping', 'optimizer', 'residual_connection', 'depth',
           'n_epochs', 'learning_rate', 'lr', 'weight_decay', 'batch_size',
           'type_width', 'width',
@@ -135,7 +135,7 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
     results = []
 
     # Loop over the different dataset sizes
-    for X, y in gen:
+    for X, Xm, y in gen:
         n, p = X.shape
         n = n - n_val - n_test
         n_val_half = n_val//2
@@ -143,23 +143,24 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
         print('method: {}, dim: {}, it: {}'.format(method, (n, p), it))
 
         # test data
-        X_test = X[0:n_test]
+        X_test = X[0:n_test] # fully observed
+        Xm_test = Xm[0:n_test] # partially observed
         y_test = y[0:n_test]
         # validation data for choosing the best model
-        X_val = X[n_test:(n_test + n_val_half)]
+        Xm_val = Xm[n_test:(n_test + n_val_half)]
         y_val = y[n_test:(n_test + n_val_half)]
         # validation data for earlystopping
-        X_val_es = X[(n_test + n_val_half):(n_test + n_val)]
+        Xm_val_es = Xm[(n_test + n_val_half):(n_test + n_val)]
         y_val_es = y[(n_test + n_val_half):(n_test + n_val)]
         # train data
-        X_train = X[(n_test + n_val):]
+        Xm_train = Xm[(n_test + n_val):]
         y_train = y[(n_test + n_val):]
 
         if ('NeuMiss' in method and
            'custom_normal' in updated_method_params['init_type']):
-            mask = 1 - np.isnan(X_train)
-            mu_hat = np.nanmean(X_train, axis=0)
-            X_train_centered = np.nan_to_num(X_train-mu_hat)
+            mask = 1 - np.isnan(Xm_train)
+            mu_hat = np.nanmean(Xm_train, axis=0)
+            X_train_centered = np.nan_to_num(Xm_train-mu_hat)
             Sigma_hat = X_train_centered.T.dot(X_train_centered)
             den = mask.T.dot(mask)
             Sigma_hat = Sigma_hat/(den-1)
@@ -181,22 +182,24 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
             reg.fit(X_train_val_es, y_train_val_es)
         elif method ==  'ProbabilisticBayesPredictor':
             reg = est(mdm=mdm, **updated_method_params)
-            reg.fit(X_train, y_train)
+            reg.fit(Xm_train, y_train)
         elif method in ['BayesPredictor', 'BayesPredictor_order0']:
             reg = est(**updated_method_params)
-            reg.fit(X_train, y_train)
+            reg.fit(Xm_train, y_train)
         else:
             # For these methods the validatin data for early stopping should be
             # given as standalone data.
             reg = est(**updated_method_params)
-            reg.fit(X_train, y_train, X_val=X_val_es, y_val=y_val_es)
+            reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
 
         pred_test = reg.predict(X_test)
-        pred_train = reg.predict(X_train)
-        pred_val = reg.predict(X_val)
+        pred_test_m = reg.predict(Xm_test)
+        pred_train = reg.predict(Xm_train)
+        pred_val = reg.predict(Xm_val)
 
         mse_train = ((y_train - pred_train)**2).mean()
         mse_test = ((y_test - pred_test)**2).mean()
+        mse_test_m = ((y_test - pred_test_m)**2).mean()
         mse_val = ((y_val - pred_val)**2).mean()
 
         var_train = ((y_train - y_train.mean())**2).mean()
@@ -205,11 +208,12 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
 
         r2_train = 1 - mse_train/var_train
         r2_test = 1 - mse_test/var_test
+        r2_test_m = 1 - mse_test_m/var_test
         r2_val = 1 - mse_val/var_val
 
         res = {'iter': it, 'n': n, 'R2_train': r2_train,
-               'R2_val': r2_val, 'R2_test': r2_test, 'mse_train': mse_train,
-               'mse_val': mse_val, 'mse_test': mse_test}
+               'R2_val': r2_val, 'R2_test': r2_test, 'R2_test_m': r2_test_m, 'mse_train': mse_train,
+               'mse_val': mse_val, 'mse_test': mse_test, 'mse_test_m': mse_test_m}
 
         results.append(res)
 

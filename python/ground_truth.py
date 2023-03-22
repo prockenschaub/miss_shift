@@ -143,6 +143,7 @@ def gen_data_selfmasking(n_sizes, data_params, random_state=None):
      curvature) = data_params
 
     X = np.empty((0, n_features))
+    Xm = np.empty((0, n_features))
     y = np.empty((0, ))
     current_size = 0
 
@@ -194,19 +195,21 @@ def gen_data_selfmasking(n_sizes, data_params, random_state=None):
 
             current_M[:, j] = rng.binomial(n=1, p=prob, size=len(X_j))
 
+        current_Xm = np.copy(current_X)
         if not perm:
-            np.putmask(current_X, current_M, np.nan)
+            np.putmask(current_Xm, current_M, np.nan)
         else:
             for j in range(n_features):
                 new_j = perms[j]
-                np.putmask(current_X[:, new_j], current_M[:, j], np.nan)
+                np.putmask(current_Xm[:, new_j], current_M[:, j], np.nan)
 
         X = np.vstack((X, current_X))
+        Xm = np.vstack((Xm, current_Xm))
         y = np.hstack((y, current_y))
 
         current_size = n_samples
 
-        yield X, y
+        yield X, Xm, y
 
 
 def gen_params(n_features, missing_rate, prop_latent, snr, masking,
@@ -298,6 +301,7 @@ def gen_data(n_sizes, data_params, random_state=None):
      prop_for_masking, link, curvature) = data_params
 
     X = np.empty((0, n_features))
+    Xm = np.empty((0, n_features))
     y = np.empty((0, ))
     current_size = 0
 
@@ -344,14 +348,16 @@ def gen_data(n_sizes, data_params, random_state=None):
             current_M = MNAR_logistic_uniform(current_X, missing_rate,
                                               prop_for_masking, rng)
 
-        np.putmask(current_X, current_M, np.nan)
+        current_Xm = np.copy(current_X)
+        np.putmask(current_Xm, current_M, np.nan)
 
         X = np.vstack((X, current_X))
+        Xm = np.vstack((Xm, current_Xm))
         y = np.hstack((y, current_y))
 
         current_size = n_samples
 
-        yield X, y
+        yield X, Xm, y
 
 
 class BayesPredictor_GSM_nonlinear():
@@ -557,6 +563,9 @@ class ProbabilisticBayesPredictor(BaseEstimator):
             obs = np.where(~m)[0]
             mis = np.where(m)[0]
 
+            if len(mis) == 0:
+                continue
+
             sigma_obs = Sigma[np.ix_(obs, obs)]
             sigma_obs_inv = np.linalg.inv(sigma_obs)
             sigma_misobs = Sigma[np.ix_(mis, obs)]
@@ -566,7 +575,7 @@ class ProbabilisticBayesPredictor(BaseEstimator):
             sigma_cond = sigma_mis - sigma_misobs.dot(sigma_obs_inv).dot(sigma_misobs.T)
 
             if self.mdm in ['MCAR', 'MAR']:
-                t[mis] = np.random.multivariate_normal(mu_cond, sigma_cond)
+                    t[mis] = np.random.multivariate_normal(mu_cond, sigma_cond)
 
             elif self.mdm == 'gaussian_sm':
                 sigma_cond_inv = np.linalg.inv(sigma_cond)
