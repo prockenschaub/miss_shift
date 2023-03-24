@@ -136,17 +136,32 @@ class ImputeMLPPytorch(BaseEstimator):
             self._imp = SimpleImputer(missing_values=np.nan, strategy='mean')
         elif self.imputation_type == 'MICE':
             self._imp = IterativeImputer(random_state=0)
+        elif self.imputation_type == 'MultiMICE':
+            self._imp = IterativeImputer(random_state=0, sample_posterior=True, verbose=2)
 
         self._reg = MLP_reg(is_mask=add_mask, **self.mlp_params)
 
     def concat_mask(self, X, T):
+        if self.imputation_type == 'MultiMICE':
+            raise NotImplementedError()
         M = np.isnan(X)
         T = np.hstack((T, M))
         return T
 
+    def impute(self, X):
+        if self.imputation_type == 'MultiMICE':
+            T = []
+            for _ in range(10):
+                T.append(self._imp.transform(X))
+            return np.concat(T, axis=0)
+        else: 
+            return self._imp.impute_fun(X)
+
     def fit(self, X, y, X_val=None, y_val=None):
-        T = self._imp.fit_transform(X)
-        T_val = self._imp.transform(X_val)
+        self._imp.fit(X)
+        T = self.impute(X)
+        T_val = self.impute(X_val)
+            
         if self.add_mask:
             T = self.concat_mask(X, T)
             T_val = self.concat_mask(X_val, T_val)
@@ -154,7 +169,7 @@ class ImputeMLPPytorch(BaseEstimator):
         return self
 
     def predict(self, X):
-        T = self._imp.transform(X)
+        T = self.impute(X)
         if self.add_mask:
             T = self.concat_mask(X, T)
         return self._reg.predict(T)
