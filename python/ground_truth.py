@@ -593,7 +593,10 @@ class ProbabilisticBayesPredictor(BaseEstimator):
         return self
 
     def predict_f_star(self, X):
-        (_, _, _, _, _, beta, _, _, link, curvature) = self.data_params
+        if self.mdm in ['MCAR', 'MAR']:
+            (_, _, _, beta, _, _, _, _, link, curvature) = self.data_params
+        elif self.mdm == 'gaussian_sm':
+            (_, _, _, _, _, beta, _, _, link, curvature) = self.data_params
 
         pred = []
         for x in X:
