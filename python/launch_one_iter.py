@@ -17,7 +17,7 @@ parser.add_argument('--link', help='type of link function for the outcome',
                              'discontinuous_linear'])
 args = parser.parse_args()
 
-n_iter = 10
+n_iter = 1#10
 n_jobs = 1 #40
 n_sizes = [2e4]#[2e4, 1e5]
 n_sizes = [int(i) for i in n_sizes]
@@ -91,7 +91,7 @@ methods_params.append({'method': 'ProbabilisticBayesPredictor'})
 #                                    'min_samples_leaf': min_samples_leaf
 #                                    })
 
-mlp_depths = [1, 2, 5]
+mlp_depths = [2]#[1, 2, 5]
 width_factors = [1] #[1, 5, 10]
 weight_decays = [1e-6] #[1e-6, 1e-5, 1e-4, 1e-3]
 learning_rates = [1e-2] #[1e-2, 5e-3, 1e-3, 5e-4]
@@ -121,53 +121,54 @@ neumann_depths = [20]
 #                                            'verbose': False})
 
 
-# for add_mask in [True, False]:
-#     for imp_type in ['mean', 'MICE']:
-#         for mlp_d in mlp_depths:
-#             for wf in width_factors:
-#                 for wd in weight_decays:
-#                     for lr in learning_rates:
-#                         if add_mask:
-#                             name = imp_type + 'MLPPytorch_mask'
-#                         else:
-#                             name = imp_type + 'MLPPytorch'
-#                         methods_params.append({'method': name,
-#                                                'add_mask': add_mask,
-#                                                'imputation_type': imp_type,
-#                                                'n_epochs': 1000,
-#                                                'batch_size': 100,
-#                                                'lr': lr,
-#                                                'weight_decay': wd,
-#                                                'early_stopping': True,
-#                                                'optimizer': 'adam',
-#                                                'mlp_depth': mlp_d,
-#                                                'width_factor': wf,
-#                                                'init_type': 'uniform',
-#                                                'verbose': False})
-
-
-for init in ['uniform']:
-    name = 'NeuMiss_' + init + '_'
-    for mlp_d in mlp_depths:
-        for wf in width_factors:
-            for d in neumann_depths:
+for add_mask in [False]:#[True, False]:
+    # for imp_type in ['mean', 'MICE']:
+    for imp_type in ['MultiMICE']:
+        for mlp_d in mlp_depths:
+            for wf in width_factors:
                 for wd in weight_decays:
                     for lr in learning_rates:
+                        if add_mask:
+                            name = imp_type + 'MLPPytorch_mask'
+                        else:
+                            name = imp_type + 'MLPPytorch'
                         methods_params.append({'method': name,
-                                               'mode': 'shared',
-                                               'depth': d,
-                                               'n_epochs': 1000,
-                                               'batch_size': 32,#100,
+                                               'add_mask': add_mask,
+                                               'imputation_type': imp_type,
+                                               'n_epochs': 1,#1000,
+                                               'batch_size': 100,
                                                'lr': lr,
                                                'weight_decay': wd,
                                                'early_stopping': True,
                                                'optimizer': 'adam',
-                                               'residual_connection': True,
                                                'mlp_depth': mlp_d,
                                                'width_factor': wf,
-                                               'init_type': init,
-                                               'add_mask': False,
+                                               'init_type': 'uniform',
                                                'verbose': False})
+
+
+# for init in ['uniform']:
+#     name = 'NeuMiss_' + init + '_'
+#     for mlp_d in mlp_depths:
+#         for wf in width_factors:
+#             for d in neumann_depths:
+#                 for wd in weight_decays:
+#                     for lr in learning_rates:
+#                         methods_params.append({'method': name,
+#                                                'mode': 'shared',
+#                                                'depth': d,
+#                                                'n_epochs': 1000,
+#                                                'batch_size': 32,#100,
+#                                                'lr': lr,
+#                                                'weight_decay': wd,
+#                                                'early_stopping': True,
+#                                                'optimizer': 'adam',
+#                                                'residual_connection': True,
+#                                                'mlp_depth': mlp_d,
+#                                                'width_factor': wf,
+#                                                'init_type': init,
+#                                                'add_mask': False,
+#                                                'verbose': False})
 
 
 run_params = {
