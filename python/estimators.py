@@ -74,10 +74,10 @@ class OracleImputeMLPPytorch(BaseEstimator):
 
             elif self.mdm == 'gaussian_sm':
                 sigma_mis_obs = sigma_mis - \
-                    sigma_misobs.dot(sigma_obs_inv).dot(sigma_misobs.T)
+                                sigma_misobs.dot(sigma_obs_inv).dot(sigma_misobs.T)
                 sigma_mis_obs_inv = np.linalg.inv(sigma_mis_obs)
 
-                D_mis_inv = np.diag(1/self.tsigma2[mis])
+                D_mis_inv = np.diag(1 / self.tsigma2[mis])
 
                 S = np.linalg.inv(D_mis_inv + sigma_mis_obs_inv)
                 s = S.dot(D_mis_inv.dot(self.tmu[mis]) +
@@ -131,6 +131,7 @@ class ImputeMLPPytorch(BaseEstimator):
         self.add_mask = add_mask
         self.imputation_type = imputation_type
         self.mlp_params = mlp_params
+        self.nb_draws = 2
 
         if self.imputation_type == 'mean':
             self._imp = SimpleImputer(missing_values=np.nan, strategy='mean')
@@ -143,28 +144,35 @@ class ImputeMLPPytorch(BaseEstimator):
 
     def concat_mask(self, X, T):
         if self.imputation_type == 'MultiMICE':
-            raise NotImplementedError()
-        M = np.isnan(X)
+            # replicate the mask, because T is now of shape [n_samples*nb_draws, n_features]
+            M = np.isnan(X)
+            M = np.repeat(M, self.nb_draws, axis=0)
+        else:
+            M = np.isnan(X)
         T = np.hstack((T, M))
         return T
 
     def impute(self, X):
         if self.imputation_type == 'MultiMICE':
             T = []
-            for _ in range(10):
+            for _ in range(self.nb_draws):
                 T.append(self._imp.transform(X))
-            return np.concat(T, axis=0)
-        else: 
+            return np.concatenate(T, axis=0)
+        else:
             return self._imp.impute_fun(X)
 
     def fit(self, X, y, X_val=None, y_val=None):
         self._imp.fit(X)
         T = self.impute(X)
         T_val = self.impute(X_val)
-            
+
         if self.add_mask:
             T = self.concat_mask(X, T)
             T_val = self.concat_mask(X_val, T_val)
+        if T.shape[0] != y.shape[0]:  # self.imputation_type == 'MultiMICE':
+            assert T.shape[0] == y.shape[0] * self.nb_draws
+            y = np.repeat(y, self.nb_draws, axis=0)
+            y_val = np.repeat(y_val, self.nb_draws, axis=0)
         self._reg.fit(T, y, X_val=T_val, y_val=y_val)
         return self
 
@@ -172,4 +180,11 @@ class ImputeMLPPytorch(BaseEstimator):
         T = self.impute(X)
         if self.add_mask:
             T = self.concat_mask(X, T)
-        return self._reg.predict(T)
+        if T.shape[0] == X.shape[0]:
+            # no adveraging of the multiple imputation is required
+            return self._reg.predict(T)
+        else:
+            y_pred = self._reg.predict(T)  # y_pred [nb_samples*nb_draws]
+            y_pred = np.reshape(y_pred, [X.shape[0], -1])
+            y_pred = np.mean(y_pred, axis=-1)
+            return y_pred
