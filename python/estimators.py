@@ -8,6 +8,7 @@ from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, SimpleImputer
 from mlp_new import MLP_reg
 
+from iterativeimputer import FastIterativeImputer
 
 class OracleImputeMLPPytorch(BaseEstimator):
     """Imputes using an oracle and then runs a MLP on the imputed data.
@@ -138,7 +139,7 @@ class ImputeMLPPytorch(BaseEstimator):
         elif self.imputation_type == 'MICE':
             self._imp = IterativeImputer(random_state=0)
         elif self.imputation_type == 'MultiMICE':
-            self._imp = IterativeImputer(random_state=0, sample_posterior=True, verbose=2)
+            self._imp = FastIterativeImputer(random_state=0, sample_posterior=True, max_iter=5)
 
         self._reg = MLP_reg(is_mask=add_mask, **self.mlp_params)
 
