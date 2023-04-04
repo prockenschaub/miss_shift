@@ -171,10 +171,14 @@ class MLP_reg(RegressorMixin):
             if self.verbose:
                 print("epoch nb {}".format(i_epoch))
 
+            # TODO: removed for now to have multiple imputations of the same sample
+            #       within the same batch. should not be a problem, as all of our 
+            #       samples are by design independent but maybe we can make this 
+            #       optional or fix the multi impute problem differently.
             # Shuffle tensors to have different batches at each epoch
-            ind = torch.randperm(n_samples)
-            X = X[ind]
-            y = y[ind]
+            #ind = torch.randperm(n_samples)
+            #X = X[ind]
+            #y = y[ind]
 
             xx = torch.split(X, split_size_or_sections=self.batch_size, dim=0)
             yy = torch.split(y, split_size_or_sections=self.batch_size, dim=0)
