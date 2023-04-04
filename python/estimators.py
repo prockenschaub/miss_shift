@@ -132,7 +132,7 @@ class ImputeMLPPytorch(BaseEstimator):
         self.add_mask = add_mask
         self.imputation_type = imputation_type
         self.mlp_params = mlp_params
-        self.nb_draws = 2
+        self.nb_draws = 5
 
         if self.imputation_type == 'mean':
             self._imp = SimpleImputer(missing_values=np.nan, strategy='mean')
