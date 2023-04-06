@@ -91,8 +91,8 @@ for max_leaf_nodes in [50, 100, 200, 400, 600]:
 
 mlp_depths = [1, 2, 5]
 width_factors = [1, 5, 10]
-weight_decays = [1e-6, 1e-5, 1e-4, 1e-3]
-learning_rates = [1e-2, 5e-3, 1e-3, 5e-4]
+weight_decays = [1e-5, 1e-4, 1e-3]
+learning_rates = [1e-2, 5e-3, 1e-3]
 neumann_depths = [20]
 
 for add_mask in [True, False]:
