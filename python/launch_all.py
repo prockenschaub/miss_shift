@@ -78,7 +78,7 @@ methods_params = []
 
 methods_params.append({'method': 'BayesPredictor', 'order0': False})
 methods_params.append({'method': 'BayesPredictor_order0', 'order0': True})
-methods_params.append({'method': 'ProbabilisticBayesPredictor', 'order0': False})
+methods_params.append({'method': 'ProbabilisticBayesPredictor'})
 
 for max_leaf_nodes in [50, 100, 200, 400, 600]:
     for max_iter in [100, 200, 300]:

@@ -123,7 +123,7 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
         est = Neumiss_mlp
     elif 'oracleMLPPytorch' in method:
         est = OracleImputeMLPPytorch
-    elif ('meanMLPPytorch' in method) or ('MICEMLPPytorch' in method):
+    elif ('meanMLPPytorch' in method) or ('MICEMLPPytorch' in method)  or ('MultiMICEMLPPytorch' in method):
         est = ImputeMLPPytorch
     elif 'GBRT' in method:
         est = HistGradientBoostingRegressor
