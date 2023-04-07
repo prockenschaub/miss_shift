@@ -161,7 +161,7 @@ class ImputeMLPPytorch(BaseEstimator):
             return np.stack(T).reshape((self.nb_draws * X.shape[0], X.shape[1]), order='F')
             #return np.concatenate(T, axis=0)
         else:
-            return self._imp.impute_fun(X)
+            return self._imp.transform(X)
 
     def fit(self, X, y, X_val=None, y_val=None):
         self._imp.fit(X)
