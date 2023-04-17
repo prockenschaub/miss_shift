@@ -77,7 +77,7 @@ def update_method_params(method, method_params, data_params=None):
 
     # Recover ground truth parameters for oracles
     if 'oracle' in method:
-        if params['mdm'] == 'MCAR':
+        if params['mdm'] in ['MCAR', 'MAR']:
             (_, mean, cov, beta, _, _, _, _, _, _) = data_params
         elif params['mdm'] == 'gaussian_sm':
             (_, _, sm_params, mean, cov, beta, _, _, _, _) = data_params
