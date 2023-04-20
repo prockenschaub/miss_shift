@@ -18,8 +18,8 @@ memory = Memory(location, verbose=0)
 
 
 # Result item to create the DataFrame in a consistent way.
-fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m', 'mse_test_s',
-          'R2_train', 'R2_val', 'R2_test', 'R2_test_m', 'R2_test_s',
+fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m', 'mse_test_s1', 'mse_test_s2',
+          'R2_train', 'R2_val', 'R2_test', 'R2_test_m', 'R2_test_s1', 'R2_test_s2',
           'early_stopping', 'optimizer', 'residual_connection', 'depth',
           'n_epochs', 'learning_rate', 'lr', 'weight_decay', 'batch_size',
           'type_width', 'width',
@@ -106,8 +106,10 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
         generate_params = gen_params
         generate_data = gen_data
     data_params = generate_params(**data_desc, random_state=it)
-    gen = generate_data(n_tot, data_params, random_state=it)
-    gen_shift = generate_data(n_tot, data_params, random_state=it*4242)
+    gen = generate_data(n_tot, data_params, random_state=it, sample_vars=False)
+    gen_shift1 = generate_data(n_tot, data_params, random_state=it*42)
+    gen_shift2 = generate_data(n_tot, data_params, random_state=it*4242, sample_vars=False)
+
 
     updated_method_params = update_method_params(
         method, method_params, data_params)
@@ -136,7 +138,7 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
     results = []
 
     # Loop over the different dataset sizes
-    for (X, Xm, y), (_, Xs, ys) in zip(gen, gen_shift):
+    for (X, Xm, y), (_, Xs1, ys1), (_, Xs2, ys2) in zip(gen, gen_shift1, gen_shift2):
         n, p = X.shape
         n = n - n_val - n_test
         n_val_half = n_val//2
@@ -195,32 +197,38 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
 
         pred_test = reg.predict(X_test)
         pred_test_m = reg.predict(Xm_test)
-        pred_test_s = reg.predict(Xs)
+        pred_test_s1 = reg.predict(Xs1)
+        pred_test_s2 = reg.predict(Xs2)
         pred_train = reg.predict(Xm_train)
         pred_val = reg.predict(Xm_val)
 
         mse_train = ((y_train - pred_train)**2).mean()
         mse_test = ((y_test - pred_test)**2).mean()
         mse_test_m = ((y_test - pred_test_m)**2).mean()
-        mse_test_s = ((ys - pred_test_s)**2).mean()
+        mse_test_s1 = ((ys1 - pred_test_s1)**2).mean()
+        mse_test_s2 = ((ys2 - pred_test_s2)**2).mean()
         mse_val = ((y_val - pred_val)**2).mean()
 
         var_train = ((y_train - y_train.mean())**2).mean()
         var_test = ((y_test - y_test.mean())**2).mean()
-        var_test_s = ((ys - ys.mean())**2).mean()
+        var_test_s1 = ((ys1 - ys1.mean())**2).mean()
+        var_test_s2 = ((ys2 - ys2.mean())**2).mean()
         var_val = ((y_val - y_val.mean())**2).mean()
 
         r2_train = 1 - mse_train/var_train
         r2_test = 1 - mse_test/var_test
         r2_test_m = 1 - mse_test_m/var_test
-        r2_test_s = 1 - mse_test_s/var_test_s
+        r2_test_s1 = 1 - mse_test_s1/var_test_s1
+        r2_test_s2 = 1 - mse_test_s2/var_test_s2
         r2_val = 1 - mse_val/var_val
 
         res = {'iter': it, 'n': n, 
                'R2_train': r2_train, 'R2_val': r2_val, 
-               'R2_test': r2_test, 'R2_test_m': r2_test_m, 'R2_test_s': r2_test_s,
+               'R2_test': r2_test, 'R2_test_m': r2_test_m, 
+               'R2_test_s1': r2_test_s1, 'R2_test_s2': r2_test_s2,
                'mse_train': mse_train, 'mse_val': mse_val, 
-               'mse_test': mse_test, 'mse_test_m': mse_test_m, 'mse_test_s': mse_test_s}
+               'mse_test': mse_test, 'mse_test_m': mse_test_m, 
+               'mse_test_s1': mse_test_s1, 'mse_test_s2': mse_test_s2,}
 
         results.append(res)
 

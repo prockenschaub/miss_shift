@@ -44,7 +44,7 @@ def MCAR(X, p, random_state):
     return mask
 
 
-def MAR_logistic(X, p, p_obs, random_state):
+def MAR_logistic(X, p, p_obs, random_state, sample_vars=True):
     """
     Missing at random mechanism with a logistic masking model. First, a subset
     of variables with *no* missing values is randomly selected. The remaining
@@ -84,8 +84,12 @@ def MAR_logistic(X, p, p_obs, random_state):
     d_na = d - d_obs
 
     # Sample variables that will all be observed, and those with missing values
-    idxs_obs = rng.choice(d, d_obs, replace=False)
-    idxs_nas = np.array([i for i in range(d) if i not in idxs_obs])
+    if sample_vars:
+        idxs_obs = rng.choice(d, d_obs, replace=False)
+        idxs_nas = np.array([i for i in range(d) if i not in idxs_obs])
+    else: 
+        idxs_obs = np.arange(d_obs)
+        idxs_nas = np.arange(d_obs, d)
 
     # Other variables will have NA proportions that depend on those observed
     # variables, through a logistic model. The parameters of this logistic

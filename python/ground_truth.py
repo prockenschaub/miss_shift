@@ -293,7 +293,7 @@ def gen_params(n_features, missing_rate, prop_latent, snr, masking,
             prop_for_masking, link, curvature)
 
 
-def gen_data(n_sizes, data_params, random_state=None):
+def gen_data(n_sizes, data_params, random_state=None, sample_vars=True):
 
     rng = check_random_state(random_state)
 
@@ -341,7 +341,7 @@ def gen_data(n_sizes, data_params, random_state=None):
             current_M = MCAR(current_X, missing_rate, rng)
         elif masking == 'MAR_logistic':
             current_M = MAR_logistic(current_X, missing_rate, prop_for_masking,
-                                     rng)
+                                     rng, sample_vars=sample_vars)
         elif masking == 'MNAR_logistic':
             current_M = MNAR_logistic(current_X, missing_rate, rng)
         elif masking == 'MNAR_logistic_uniform':
