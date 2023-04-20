@@ -18,8 +18,8 @@ memory = Memory(location, verbose=0)
 
 
 # Result item to create the DataFrame in a consistent way.
-fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m',
-          'R2_train', 'R2_val', 'R2_test', 'R2_test_m',
+fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m', 'mse_test_s',
+          'R2_train', 'R2_val', 'R2_test', 'R2_test_m', 'R2_test_s',
           'early_stopping', 'optimizer', 'residual_connection', 'depth',
           'n_epochs', 'learning_rate', 'lr', 'weight_decay', 'batch_size',
           'type_width', 'width',
