@@ -89,6 +89,7 @@ def plot_one(data, var, ax=None, type='violin', setup=False, callback=None):
 
     sns.set_palette('bright')
 
+    data['method'] = data['method'].cat.remove_unused_categories()
     methods = data['method'].unique()
 
     if type == 'violin':
