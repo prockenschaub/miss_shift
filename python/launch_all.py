@@ -146,27 +146,28 @@ for add_mask in [True, False]:
 
 
 for init in ['uniform']:
-    name = 'NeuMiss_' + init + '_'
-    for mlp_d in mlp_depths:
-        for wf in width_factors:
-            for d in neumann_depths:
-                for wd in weight_decays:
-                    for lr in learning_rates:
-                        methods_params.append({'method': name,
-                                               'mode': 'shared',
-                                               'depth': d,
-                                               'n_epochs': 1000,
-                                               'batch_size': 100,
-                                               'lr': lr,
-                                               'weight_decay': wd,
-                                               'early_stopping': True,
-                                               'optimizer': 'adam',
-                                               'residual_connection': True,
-                                               'mlp_depth': mlp_d,
-                                               'width_factor': wf,
-                                               'init_type': init,
-                                               'add_mask': False,
-                                               'verbose': False})
+    for imp_type in ['NeuMiss', 'NeuMICE']:
+        name = imp_type + '_' + init + '_'
+        for mlp_d in mlp_depths:
+            for wf in width_factors:
+                for d in neumann_depths:
+                    for wd in weight_decays:
+                        for lr in learning_rates:
+                            methods_params.append({'method': name,
+                                                'mode': 'shared',
+                                                'depth': d,
+                                                'n_epochs': 1000,
+                                                'batch_size': 100,
+                                                'lr': lr,
+                                                'weight_decay': wd,
+                                                'early_stopping': True,
+                                                'optimizer': 'adam',
+                                                'residual_connection': True,
+                                                'mlp_depth': mlp_d,
+                                                'width_factor': wf,
+                                                'init_type': init,
+                                                'add_mask': False,
+                                                'verbose': False})
 
 
 run_params = {
