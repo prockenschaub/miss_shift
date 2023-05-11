@@ -2,7 +2,6 @@
 import torch
 from torch import Tensor, nn
 from torch.nn import Linear, Parameter, ReLU, Sequential
-from torch.types import _dtype
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -44,7 +43,7 @@ class NeuMICEBlock(nn.Module):
     Gael Varoquaux."""
 
     def __init__(self, n_features: int, depth: int,
-                 dtype: _dtype = torch.float) -> None:
+                 dtype = torch.float) -> None:
         """
         Parameters
         ----------
@@ -88,7 +87,7 @@ class NeuMICEMLP(nn.Module):
     """A NeuMICE block followed by a MLP."""
 
     def __init__(self, n_features: int, neumiss_depth: int, mlp_depth: int,
-                 mlp_width: int = None, dtype: _dtype = torch.float) -> None:
+                 mlp_width: int = None, dtype = torch.float) -> None:
         """
         Parameters
         ----------
