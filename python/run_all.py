@@ -6,7 +6,6 @@ from ground_truth import gen_params, gen_data,\
                          gen_params_selfmasking, gen_data_selfmasking
 from NeuMiss_accelerated_with_init import Neumiss_mlp
 from NeuMICE import NeuMICE_mlp
-from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import HistGradientBoostingRegressor
 from estimators import ImputeMLPPytorch, OracleImputeMLPPytorch
 from ground_truth import BayesPredictor_GSM_nonlinear,\
