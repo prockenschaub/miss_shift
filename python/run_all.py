@@ -5,7 +5,7 @@ from joblib import Memory, Parallel, delayed
 from ground_truth import gen_params, gen_data,\
                          gen_params_selfmasking, gen_data_selfmasking
 from NeuMiss_accelerated_with_init import Neumiss_mlp
-from sklearn.experimental import enable_hist_gradient_boosting
+from NeuMICE import NeuMICE_mlp
 from sklearn.ensemble import HistGradientBoostingRegressor
 from estimators import ImputeMLPPytorch, OracleImputeMLPPytorch
 from ground_truth import BayesPredictor_GSM_nonlinear,\
@@ -124,6 +124,8 @@ def run_one(data_desc, method, method_params, it, n_sizes, n_test, n_val, mdm):
             est = BayesPredictor_MCAR_MAR_nonlinear
     elif 'NeuMiss' in method:
         est = Neumiss_mlp
+    elif 'NeuMICE' in method:
+        est = NeuMICE_mlp
     elif 'oracleMLPPytorch' in method:
         est = OracleImputeMLPPytorch
     elif ('meanMLPPytorch' in method) or ('MICEMLPPytorch' in method)  or ('MultiMICEMLPPytorch' in method):
