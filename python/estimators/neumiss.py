@@ -114,13 +114,10 @@ class Neumiss(BaseEstimator):
     verbose: boolean
     """
 
-    def __init__(self, mode, depth, n_epochs=1000, batch_size=100, lr=0.01,
+    def __init__(self, depth, n_epochs=1000, batch_size=100, lr=0.01,
                  weight_decay=1e-4, early_stopping=False, optimizer='sgd',
-                 residual_connection=False, mlp_depth=0, width_factor=1,
-                 init_type='normal', add_mask=False, Sigma=None, mu=None,
-                 beta=None, beta0=None, L=None, tmu=None, tsigma=None,
-                 coefs=None, verbose=False):
-        self.mode = mode
+                 mlp_depth=0, width_factor=1,
+                 init_type='normal', add_mask=False, verbose=False):
         self.depth = depth
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -128,19 +125,10 @@ class Neumiss(BaseEstimator):
         self.weight_decay = weight_decay
         self.early_stop = early_stopping
         self.optimizer = optimizer
-        self.residual_connection = residual_connection
         self.mlp_depth = mlp_depth
         self.width_factor = width_factor
         self.init_type = init_type
         self.add_mask = add_mask
-        self.Sigma = Sigma
-        self.mu = mu
-        self.beta = beta
-        self.beta0 = beta0
-        self.L = L
-        self.tmu = tmu
-        self.tsigma = tsigma
-        self.coefs = coefs
         self.verbose = verbose
 
         self.r2_train = []
