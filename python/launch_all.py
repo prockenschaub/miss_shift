@@ -21,7 +21,7 @@ def configure_runs(method, method_args):
 def launch(args):
     
     # Load the experiment definition
-    file_path = f"../experiments/{args.experiment}.yaml"
+    file_path = f"experiments/{args.experiment}.yaml"
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"The file '{file_path}' does not exist. Please provide an experiment definition.")
     
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     # Define computational resources, paths, etc.
     parser.add_argument('--n_jobs', help='number of jobs to run in parallel', type=int, default=1)
-    parser.add_argument('--out_dir', help='directory where to store the results', type=str, default='../results')
+    parser.add_argument('--out_dir', help='directory where to store the results', type=str, default='results')
 
 
     args = parser.parse_known_args()[0]
