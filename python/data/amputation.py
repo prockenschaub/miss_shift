@@ -6,6 +6,8 @@ https://github.com/BorisMuzellec/MissingDataOT/blob/master/utils.py
 import numpy as np
 from sklearn.utils import check_random_state
 from scipy.optimize import fsolve
+from scipy.stats import norm
+from math import sqrt
 
 
 def sigmoid(x):
@@ -282,3 +284,26 @@ def MNAR_logistic_uniform(X, p, p_params, random_state):
     mask[:, idxs_params] = rng.rand(n, d_params) < p
 
     return mask
+
+def gaussian_sm(X, sm_type, sm_params, mean, cov, random_state):
+    n, d = X.shape
+    mask = np.zeros((n, d))
+
+    rng = check_random_state(random_state)
+
+    for j in range(d):
+        X_j = X[:, j]
+        if sm_type == 'probit':
+            lam = sm_params['lambda']
+            c = sm_params['c'][j]
+            prob = norm.cdf(lam*X_j - c)
+        elif sm_type == 'gaussian':
+            k = sm_params['k']
+            sigma2_tilde = sm_params['sigma2_tilde'][j]
+            mu_tilde = mean[j] + k*sqrt(cov[j, j])
+            prob = np.exp(-0.5*(X_j - mu_tilde)**2/sigma2_tilde)
+
+        mask[:, j] = rng.binomial(n=1, p=prob, size=len(X_j))
+
+    
+

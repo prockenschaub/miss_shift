@@ -4,181 +4,117 @@ Defines:
  - the list of methods to compare and their hyperparameters,
 And launches all experiments.
 '''
-
+import os
+import yaml
 import pandas as pd
 import argparse
 from run_all import run
 
-parser = argparse.ArgumentParser()
-parser.add_argument('mdm', help='missing data mechanism',
-                    choices=['MCAR', 'MAR', 'gaussian_sm'])
-parser.add_argument('--link', help='type of link function for the outcome',
-                    choices=['linear', 'square', 'stairs',
-                             'discontinuous_linear'])
-args = parser.parse_args()
 
-n_iter = 10
-n_jobs = 40
-n_sizes = [2e4, 1e5]
-n_sizes = [int(i) for i in n_sizes]
-n_test = int(1e4)
-n_val = int(1e4)
+def configure_runs(method, method_args):
+    method_params = pd.DataFrame([method_args])
+    for v in method_params.columns:
+        method_params = method_params.explode(v)
+    return method_params.to_dict(orient='records')
 
-if args.link == 'square':
-    curvature = 1
-elif args.link == 'stairs':
-    curvature = 20
-else:
-    curvature = None
 
-# First fill in data_desc with all default values.
-if args.mdm == 'MCAR':
-    if args.link:
-        filename = 'MCAR_' + args.link
+def launch(args):
+    
+    # Load the experiment definition
+    file_path = f"../experiments/{args.experiment}.yaml"
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"The file '{file_path}' does not exist. Please provide an experiment definition.")
+    
+    with open(file_path, 'r') as f:
+        experiment = yaml.load(f, Loader=yaml.FullLoader)
+
+    # Extract the data generation parameters from the experiment definition
+    data_spec = experiment['data']
+    
+    if args.link is not None:
+        data_spec['link'] = args.link
+    
+    if data_spec['link'] == 'square':
+        data_spec['curvature'] = 1
+    elif data_spec['link'] == 'stairs':
+        data_spec['curvature'] = 20
     else:
-        filename = 'MCAR'
+        data_spec['curvature'] = None
 
-    default_values = {'n_features': 50, 'missing_rate': 0.5,
-                      'prop_latent': 0.3, 'snr': 10, 'masking': 'MCAR',
-                      'prop_for_masking': None, 'link': args.link,
-                      'curvature': curvature}
+    varying_data_params = [k for k, v in data_spec.items() if isinstance(v, list)]
 
-    # Define the list of parameters that should be tested and their range of
-    # values
-    other_values = {'prop_latent': [0.7]}
+    # Choose the missingness scenario
+    if args.scenario not in experiment['missingness'].keys():
+        raise ValueError(f"The missingness scenario '{args.scenario}' is not defined in the experiment '{args.experiment}'.")
 
-elif args.mdm == 'gaussian_sm':
-    if args.link:
-        filename = 'gaussian_sm_' + args.link
+    missingness = experiment['missingness'][args.scenario]
+    miss_orig = missingness['orig']
+    miss_shift = missingness['shift']
+
+    default_values = {**data_spec, 'miss_orig': miss_orig, 'miss_shift': miss_shift}
+
+    # Then vary parameters one by one while the other parameters remain constant,
+    # and equal to their default values.
+    data_descs = pd.DataFrame([default_values])
+    for var in varying_data_params:
+        data_descs = data_descs.explode(var)
+
+
+    # Define the methods that will be compared
+    methods_params = {}
+    methods_params['bayes'] = [{'order0': False}]
+
+    if args.estimator == "all":
+        estimators = list(experiment['estimators'].keys())
+    if args.estimator.isdigit():
+        estimators = [list(experiment['estimators'].keys())[int(args.estimator)]]
     else:
-        filename = 'gaussian_sm'
+        estimators = [args.estimator]
 
-    default_values = {'n_features': 50, 'missing_rate': 0.5,
-                      'prop_latent': 0.3, 'sm_type': 'gaussian',
-                      'sm_param': 2, 'snr': 10, 'perm': False,
-                      'link': args.link, 'curvature': curvature}
-
-    # Define the list of parameters that should be tested and their range of
-    # values
-    other_values = {'prop_latent': [0.7]}
-
-# Then vary parameters one by one while the other parameters remain constant,
-# and equal to their default values.
-data_descs = [pd.DataFrame([default_values])]
-for param, vals in other_values.items():
-    n = len(vals)
-    data = pd.DataFrame([default_values]*n)
-    data.loc[:, param] = vals
-    data_descs.append(data)
-data_descs = pd.concat(data_descs, axis=0)
+    for estimator_name in estimators:
+        estimator_params = experiment['estimators'][estimator_name]
+        methods_params[estimator_name] = configure_runs(estimator_name, estimator_params)
 
 
-# Define the methods that will be compared
-methods_params = []
+    # Create output directory
+    out_dir = os.path.join(args.out_dir, experiment['name'], args.scenario)
+    os.makedirs(out_dir, exist_ok=True)
 
-methods_params.append({'method': 'BayesPredictor', 'order0': False})
-methods_params.append({'method': 'BayesPredictor_order0', 'order0': True})
-methods_params.append({'method': 'ProbabilisticBayesPredictor'})
+    run_params = {
+            'n_trials': args.n_trials,
+            'n_train': args.n_train,
+            'n_val': args.n_val,
+            'n_test': args.n_test,
+            'mdm': miss_orig['mdm'],
+            'data_descs': data_descs,
+            'methods_params': methods_params,
+            'out_dir': out_dir,
+            'n_jobs': args.n_jobs}
 
-for max_leaf_nodes in [50, 100, 200, 400, 600]:
-    for max_iter in [100, 200, 300]:
-        for min_samples_leaf in [10, 20, 50]:
-            methods_params.append({'method': 'GBRT',
-                                   'n_iter_no_change': 10,
-                                   'max_leaf_nodes': max_leaf_nodes,
-                                   'max_iter': max_iter,
-                                   'min_samples_leaf': min_samples_leaf
-                                   })
-
-mlp_depths = [1, 2, 5]
-width_factors = [1, 5, 10]
-weight_decays = [1e-5, 1e-4, 1e-3]
-learning_rates = [1e-2, 5e-3, 1e-3]
-neumann_depths = [20]
-
-for add_mask in [True, False]:
-    for mlp_d in mlp_depths:
-        for wf in width_factors:
-            for wd in weight_decays:
-                for lr in learning_rates:
-                    if add_mask:
-                        name = 'oracleMLPPytorch_mask'
-                    else:
-                        name = 'oracleMLPPytorch'
-                    methods_params.append({'method': name,
-                                           'add_mask': add_mask,
-                                           'mdm': args.mdm,
-                                           'n_epochs': 1000,
-                                           'batch_size': 100,
-                                           'lr': lr,
-                                           'weight_decay': wd,
-                                           'early_stopping': True,
-                                           'optimizer': 'adam',
-                                           'width_factor': wf,
-                                           'mlp_depth': mlp_d,
-                                           'init_type': 'uniform',
-                                           'verbose': False})
+    run(**run_params)
 
 
-for add_mask in [True, False]:
-    for imp_type in ['mean', 'MICE', 'MultiMICE']:
-        for mlp_d in mlp_depths:
-            for wf in width_factors:
-                for wd in weight_decays:
-                    for lr in learning_rates:
-                        if add_mask:
-                            name = imp_type + 'MLPPytorch_mask'
-                        else:
-                            name = imp_type + 'MLPPytorch'
-                        methods_params.append({'method': name,
-                                               'add_mask': add_mask,
-                                               'imputation_type': imp_type,
-                                               'n_epochs': 1000,
-                                               'batch_size': 100,
-                                               'lr': lr,
-                                               'weight_decay': wd,
-                                               'early_stopping': True,
-                                               'optimizer': 'adam',
-                                               'mlp_depth': mlp_d,
-                                               'width_factor': wf,
-                                               'init_type': 'uniform',
-                                               'verbose': False})
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    # Define experiment settings
+    parser.add_argument('experiment', help='YAML specifying the experiment conditions (data gen, missingness, hyperparams)', type=str)
+    parser.add_argument('scenario', help='missing data scenario (defined in experiment)', type=str)
+    parser.add_argument('estimator', help='estimator to use (can be "all", a name, or a number corresponding to the order in the experiment YAML)', type=str)
+    parser.add_argument('--link', help='type of link function for the outcome',
+                        choices=['linear', 'square', 'stairs',
+                                'discontinuous_linear'], required=False)
+    
+    # Define experiment scope
+    parser.add_argument('--n_trials', help='number of trials per hyperparameter', type=int, default=1)
+    parser.add_argument('--n_train', help='list of train set size(s)', nargs='+', type=int, default=20000)
+    parser.add_argument('--n_val', help='size of the validation set', type=int, default=10000)
+    parser.add_argument('--n_test', help='size of the test set', type=int, default=10000)
+
+    # Define computational resources, paths, etc.
+    parser.add_argument('--n_jobs', help='number of jobs to run in parallel', type=int, default=1)
+    parser.add_argument('--out_dir', help='directory where to store the results', type=str, default='../results')
 
 
-for init in ['uniform']:
-    for imp_type in ['NeuMiss', 'NeuMICE']:
-        name = imp_type + '_' + init + '_'
-        for mlp_d in mlp_depths:
-            for wf in width_factors:
-                for d in neumann_depths:
-                    for wd in weight_decays:
-                        for lr in learning_rates:
-                            methods_params.append({'method': name,
-                                                'mode': 'shared',
-                                                'depth': d,
-                                                'n_epochs': 1000,
-                                                'batch_size': 100,
-                                                'lr': lr,
-                                                'weight_decay': wd,
-                                                'early_stopping': True,
-                                                'optimizer': 'adam',
-                                                'residual_connection': True,
-                                                'mlp_depth': mlp_d,
-                                                'width_factor': wf,
-                                                'init_type': init,
-                                                'add_mask': False,
-                                                'verbose': False})
-
-
-run_params = {
-        'n_iter': n_iter,
-        'n_sizes': n_sizes,
-        'n_test': n_test,
-        'n_val': n_val,
-        'mdm': args.mdm,
-        'data_descs': data_descs,
-        'methods_params': methods_params,
-        'filename': filename,
-        'n_jobs': n_jobs}
-
-run(**run_params)
+    args = parser.parse_known_args()[0]
+    launch(args)
