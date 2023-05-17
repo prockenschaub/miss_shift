@@ -57,7 +57,7 @@ def run(n_trials, n_train, n_val, n_test, mdm, data_descs, methods_params,
         # performances and the corresponding data and method parameters.
         # Note that results has the same size as store_params (correspondance)
         combined_results = []
-        for i in range(len(params)):
+        for i in range(len(runs)):
             data_desc, method, method_params, _ = runs[i]
             result = results[i]
             for result_n in result:
@@ -148,6 +148,9 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         elif method in ['bayes', 'prob_bayes']:
             reg = est(orig_params, **method_params)
             reg.fit(Xm_train, y_train)
+        elif method in ['oracle_impute']:
+            reg = est(orig_params, **method_params)
+            reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
         else:
             # For these methods the validatin data for early stopping should be
             # given as standalone data.
