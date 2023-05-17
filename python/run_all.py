@@ -20,10 +20,10 @@ import torch
 # Result item to create the DataFrame in a consistent way.
 fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m', 'mse_test_s',
           'R2_train', 'R2_val', 'R2_test', 'R2_test_m', 'R2_test_s', 
-          'early_stopping', 'optimizer', 'residual_connection', 'depth',
+          'early_stopping', 'optimizer', 'depth',
           'n_epochs', 'learning_rate', 'lr', 'weight_decay', 'batch_size',
-          'type_width', 'width',
-          'mode',  'verbose', 'mlp_depth', 'init_type', 'max_iter', 'order0',
+          'type_width', 'width', 'n_draws', 'n_iter_no_change',
+          'verbose', 'mlp_depth', 'init_type', 'max_iter', 'order0',
           'n_trials_no_change', 'add_mask', 'imputation_type', 
           'n_features', 'prop_latent', 'snr', 'miss_orig', 'miss_shift',
           'link', 'curvature', 'width_factor', 'max_leaf_nodes', 'min_samples_leaf']
