@@ -35,8 +35,8 @@ ResultItem.__new__.__defaults__ = (np.nan, )*len(ResultItem._fields)
 def run(n_trials, n_train, n_val, n_test, mdm, data_descs, methods_params,
         out_dir, n_jobs=1):
 
-    runs = []
     for nm, scope in methods_params.items():
+        runs = []
         for params in scope:
             for data_desc in data_descs.itertuples(index=False):
                 data_desc = dict(data_desc._asdict())
