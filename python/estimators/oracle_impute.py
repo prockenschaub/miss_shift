@@ -36,46 +36,46 @@ class OracleImputeMLPPytorch(BaseEstimator):
         The dictionary containing the parameters for the MLP.
     """
 
-    def __init__(self, add_mask, mdm, mu, Sigma, tmu=None, tsigma2=None,
-                 **mlp_params):
-
+    def __init__(self, data_params, add_mask, **mlp_params):
+        self.data_params = data_params
         self.add_mask = add_mask
-        self.mdm = mdm
-        self.mu = mu
-        self.Sigma = Sigma
-        self.tmu = tmu
-        self.tsigma2 = tsigma2
         self.mlp_params = mlp_params
 
         self._reg = MLP_reg(is_mask=add_mask, **self.mlp_params)
 
     def oracle_impute(self, X):
+        (_, mu, Sigma, _, masking_params, _, _, _) = self.data_params
+        
         T = X.copy()
         for t in T:
             m = np.isnan(t)
             obs = np.where(~m)[0]
             mis = np.where(m)[0]
 
-            sigma_obs = self.Sigma[np.ix_(obs, obs)]
+            sigma_obs = Sigma[np.ix_(obs, obs)]
             sigma_obs_inv = np.linalg.inv(sigma_obs)
-            sigma_misobs = self.Sigma[np.ix_(mis, obs)]
-            sigma_mis = self.Sigma[np.ix_(mis, mis)]
+            sigma_misobs = Sigma[np.ix_(mis, obs)]
+            sigma_mis = Sigma[np.ix_(mis, mis)]
 
-            mu_mis_obs = self.mu[mis] + sigma_misobs.dot(
-                sigma_obs_inv).dot(t[obs] - self.mu[obs])
+            mu_mis_obs = mu[mis] + sigma_misobs.dot(
+                sigma_obs_inv).dot(t[obs] - mu[obs])
 
-            if self.mdm in ['MCAR', 'MAR']:
+            if masking_params['mdm'] in ['MCAR', 'MAR']:
                 t[mis] = mu_mis_obs
 
-            elif self.mdm == 'gaussian_sm':
+            elif masking_params['mdm'] == 'gaussian_sm':
+                sm_params = masking_params['sm_params']
+                tsigma2 = sm_params['sigma2_tilde']
+                tmu = sm_params['tmu']
+
                 sigma_mis_obs = sigma_mis - \
                                 sigma_misobs.dot(sigma_obs_inv).dot(sigma_misobs.T)
                 sigma_mis_obs_inv = np.linalg.inv(sigma_mis_obs)
 
-                D_mis_inv = np.diag(1 / self.tsigma2[mis])
+                D_mis_inv = np.diag(1 / tsigma2[mis])
 
                 S = np.linalg.inv(D_mis_inv + sigma_mis_obs_inv)
-                s = S.dot(D_mis_inv.dot(self.tmu[mis]) +
+                s = S.dot(D_mis_inv.dot(tmu[mis]) +
                           sigma_mis_obs_inv.dot(mu_mis_obs))
 
                 t[mis] = s
