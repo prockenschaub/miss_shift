@@ -44,16 +44,12 @@ def run(n_trials, n_train, n_val, n_test, mdm, data_descs, methods_params,
                 for it in range(n_trials):
                     runs.append([data_desc, nm, params, it])
 
-        # results = Parallel(n_jobs=n_jobs)(
-        #     delayed(run_one)(data_desc, method, method_params, it, n_train,
-        #                     n_test, n_val, mdm)
-        #     for data_desc, method, method_params, it in tqdm(runs)
-        # )
-        results = []
-        for data_desc, method, method_params, it in tqdm(runs):
-            results.append(run_one(data_desc, method, method_params, it, n_train,
-                            n_test, n_val, mdm))
-
+        results = Parallel(n_jobs=n_jobs)(
+             delayed(run_one)(data_desc, method, method_params, it, n_train,
+                             n_test, n_val, mdm)
+             for data_desc, method, method_params, it in tqdm(runs)
+         )
+        
         # combined_results is a list of all result items that combine the obtained
         # performances and the corresponding data and method parameters.
         # Note that results has the same size as store_params (correspondance)
