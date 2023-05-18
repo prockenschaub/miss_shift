@@ -62,8 +62,7 @@ def launch(args):
 
     # Define the methods that will be compared
     methods_params = {}
-    methods_params['bayes'] = [{'order0': False}]
-
+    
     if args.estimator == "all":
         estimators = list(experiment['estimators'].keys())
     if args.estimator.isdigit():
