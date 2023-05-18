@@ -30,7 +30,7 @@ class BayesPredictor_GSM_nonlinear(BaseEstimator):
 
         _, mu, cov, beta, masking_params, _, link, curvature = self.data_params
 
-        sm_params = masking_params['sm_params']
+        sm_params = masking_params['sm_param']
         tsigma2 = sm_params['sigma2_tilde']
         tmu = sm_params['tmu']
 

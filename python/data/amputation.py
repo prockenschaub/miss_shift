@@ -305,5 +305,7 @@ def gaussian_sm(X, sm_type, sm_params, mean, cov, random_state):
 
         mask[:, j] = rng.binomial(n=1, p=prob, size=len(X_j))
 
+    return mask
+
     
 
