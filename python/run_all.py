@@ -81,8 +81,8 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
     shift_desc = deepcopy(data_desc)
     shift_desc['masking_params'] = shift_desc.pop('miss_shift')
     shift_desc.pop('miss_orig')
-    shift_params = gen_params(**shift_desc, random_state=it)
-    gen_shift = gen_data(n_tot, shift_params, random_state=it*42)
+    shift_params = gen_params(**shift_desc, random_state=it*4242)
+    gen_shift = gen_data(n_tot, shift_params, random_state=it*4242)
 
     # Get method name and initialize estimator
     if method == 'bayes':
