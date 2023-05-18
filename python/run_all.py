@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 import numpy as np
 import pandas as pd
 from collections import namedtuple
@@ -75,13 +76,13 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
     n_tot = [n_train + n_test + n_val for n_train in n_train]
 
     # Generate the data
-    orig_desc = data_desc.copy()
+    orig_desc = deepcopy(data_desc)
     orig_desc['masking_params'] = orig_desc.pop('miss_orig')
     orig_desc.pop('miss_shift')
     orig_params = gen_params(**orig_desc, random_state=it)
     gen_orig = gen_data(n_tot, orig_params, random_state=it)
 
-    shift_desc = data_desc.copy()
+    shift_desc = deepcopy(data_desc)
     shift_desc['masking_params'] = shift_desc.pop('miss_shift')
     shift_desc.pop('miss_orig')
     shift_params = gen_params(**shift_desc, random_state=it)
