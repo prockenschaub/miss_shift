@@ -31,7 +31,7 @@ class ProbabilisticBayesPredictor(BaseEstimator):
         if mdm not in ['MCAR', 'MAR_logistic', 'gaussian_sm']:
             raise ValueError('`mdm` should be one of `MCAR`, `MAR_logistic`, or `gaussian_sm`')
         elif mdm == 'gaussian_sm':
-            sm_params = masking_params['sm_params']
+            sm_params = masking_params['sm_param']
             tsigma2 = sm_params['sigma2_tilde']
             tmu = sm_params['tmu']
         
