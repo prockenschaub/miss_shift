@@ -39,7 +39,7 @@ missingness:
 
 estimators:
   bayes: 
-    order0: True
+    order0: [True, False]
   prob_bayes: 
     n_draws: 10
   gbrt:
