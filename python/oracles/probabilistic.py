@@ -50,7 +50,7 @@ class ProbabilisticBayesPredictor(BaseEstimator):
             sigma_mis = Sigma[np.ix_(mis, mis)]
 
             mu_cond = mu[mis] + sigma_misobs.dot(sigma_obs_inv).dot(t[obs] - mu[obs])
-            sigma_cond = sigma_mis - sigma_misobs.dot(sigma_obs_inv).dot(sigma_misobs.T)
+            sigma_cond = sigma_mis - sigma_misobs.dot(sigma_obs_inv).dot(sigma_misobs.T) + np.diag(np.repeat(1e-6, repeats=len(mis)))
 
             if mdm in ['MCAR', 'MAR_logistic']:
                     t[mis] = np.random.multivariate_normal(mu_cond, sigma_cond)
