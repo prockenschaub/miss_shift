@@ -81,7 +81,7 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
     shift_desc = deepcopy(data_desc)
     shift_desc['masking_params'] = shift_desc.pop('miss_shift')
     shift_desc.pop('miss_orig')
-    shift_params = gen_params(**shift_desc, random_state=it*4242)
+    shift_params = gen_params(**shift_desc, random_state=it) # NOTE: this must be same seed as above to keep beta same
     gen_shift = gen_data(n_tot, shift_params, random_state=it*4242)
 
     # Get method name and initialize estimator
@@ -154,28 +154,35 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
             reg = est(**method_params)
             reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
 
-        pred_test = reg.predict(X_test)
-        pred_test_m = reg.predict(Xm_test)
-        pred_test_s = reg.predict(Xs)
         pred_train = reg.predict(Xm_train)
         pred_val = reg.predict(Xm_val)
+        pred_test = reg.predict(X_test)
+        pred_test_m = reg.predict(Xm_test)
 
         mse_train = ((y_train - pred_train)**2).mean()
+        mse_val = ((y_val - pred_val)**2).mean()
         mse_test = ((y_test - pred_test)**2).mean()
         mse_test_m = ((y_test - pred_test_m)**2).mean()
-        mse_test_s = ((ys - pred_test_s)**2).mean()
-        mse_val = ((y_val - pred_val)**2).mean()
 
         var_train = ((y_train - y_train.mean())**2).mean()
-        var_test = ((y_test - y_test.mean())**2).mean()
-        var_test_s = ((ys - ys.mean())**2).mean()
         var_val = ((y_val - y_val.mean())**2).mean()
+        var_test = ((y_test - y_test.mean())**2).mean()
+        
 
         r2_train = 1 - mse_train/var_train
+        r2_val = 1 - mse_val/var_val
         r2_test = 1 - mse_test/var_test
         r2_test_m = 1 - mse_test_m/var_test
+
+
+        # Update oracles for missingness shift prediction
+        if method in ['bayes', 'prob_bayes', 'oracle_impute']:
+            reg.data_params = shift_params
+        pred_test_s = reg.predict(Xs)
+        mse_test_s = ((ys - pred_test_s)**2).mean()
+        var_test_s = ((ys - ys.mean())**2).mean()
         r2_test_s = 1 - mse_test_s/var_test_s
-        r2_val = 1 - mse_val/var_val
+
 
         res = {'iter': it, 'n': n, 
                'R2_train': r2_train, 'R2_val': r2_val, 
