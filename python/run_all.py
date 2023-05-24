@@ -8,6 +8,9 @@ from data.generation import gen_params, gen_data
 
 from estimators.neumiss import Neumiss
 from estimators.neumice import NeuMICE
+from estimators.neumiss_oracle import NeuMissOracle
+from estimators.neumice_oracle import NeuMICEOracle
+from estimators.conditional_impute_oracle import MICEOracle
 from estimators.conditional_impute import ImputeMLPPytorch
 from estimators.oracle_impute import OracleImputeMLPPytorch
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -92,10 +95,16 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
             est = BayesPredictor_MCAR_MAR_nonlinear
     elif method == "prob_bayes":
         est = ProbabilisticBayesPredictor
-    elif 'neumiss' in method:
+    elif method == 'neumiss_oracle':
+        est = NeuMissOracle
+    elif method == 'neumiss':
         est = Neumiss
-    elif 'neumice' in method:
+    elif method == 'neumice_oracle':
+        est = NeuMICEOracle
+    elif method == 'neumice':
         est = NeuMICE
+    elif method == 'mice_oracle':
+        est = MICEOracle
     elif 'oracle_impute' in method:
         est = OracleImputeMLPPytorch
     elif ('mean_impute' in method) or ('mice_impute' in method)  or ('multimice_impute' in method):
@@ -145,7 +154,7 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         elif method in ['bayes', 'prob_bayes']:
             reg = est(orig_params, **method_params)
             reg.fit(Xm_train, y_train)
-        elif method in ['oracle_impute']:
+        elif method in ['oracle_impute', 'mice_oracle', 'neumiss_oracle', 'neumice_oracle']:
             reg = est(orig_params, **method_params)
             reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
         else:

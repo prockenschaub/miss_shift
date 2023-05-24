@@ -104,3 +104,23 @@ estimators:
     weight_decay: [1.e-5, 1.e-4, 1.e-3]
     lr: [1.e-2, 5.e-3, 1.e-3]
     depth: [20] 
+  neumice_oracle:
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    init_type: 'uniform'
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
+    depth: [20] 
+  neumiss_oracle:
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    init_type: 'uniform'
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
+    depth: [20] 
+  mice_oracle:
+    n_draws: 5
