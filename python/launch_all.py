@@ -76,7 +76,7 @@ def launch(args):
 
 
     # Create output directory
-    out_dir = os.path.join(args.out_dir, experiment['name'], args.scenario)
+    out_dir = os.path.join(args.out_dir, experiment['name'], args.link, args.scenario)
     os.makedirs(out_dir, exist_ok=True)
 
     run_params = {

@@ -1,29 +1,39 @@
+import os
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 NAMES = {
-    'BayesPredictor_order0': 'Chaining oracles (cond.)',
-    'ProbabilisticBayesPredictor': 'Chaining oracles (prob.)',
-    'oracleMLPPytorch': 'Oracle impute + MLP',
-    'oracleMLPPytorch_mask': 'Oracle impute & mask + MLP',
-    'NeuMiss_uniform_': 'NeuMiss + MLP',
-    'MICEMLPPytorch': 'MICE + MLP',
-    'MICEMLPPytorch_mask': 'MICE & mask + MLP',
-    'MultiMICEMLPPytorch': 'MultiMICE + MLP',
-    'MultiMICEMLPPytorch_mask': 'MultiMICE & mask + MLP',
-    'meanMLPPytorch': 'mean impute + MLP',
-    'meanMLPPytorch_mask': 'mean impute & mask + MLP',
-    'GBRT': 'Gradient-boosted trees',
+    'bayes_order0': 'Chaining oracles (cond.)',
+    'prob_bayes': 'Chaining oracles (prob.)',
+    'oracle_impute': 'Oracle impute + MLP',
+    'oracle_impute_mask': 'Oracle impute & mask + MLP',
+    'neumice': 'NeuMICE + MLP',
+    'neumiss': 'NeuMiss + MLP',
+    'mice_impute': 'MICE + MLP',
+    'mice_impute_mask': 'MICE & mask + MLP',
+    'multimice_impute': 'MultiMICE + MLP',
+    'multimice_impute_mask': 'MultiMICE & mask + MLP',
+    'mean_impute': 'mean impute + MLP',
+    'mean_impute_mask': 'mean impute & mask + MLP',
+    'gbrt': 'Gradient-boosted trees',
 }
 
 # Preprocess the scores
 
-def load_scores(experiment):
-    return pd.read_csv('results/' + experiment + '.csv', index_col=0)
+def load_scores(experiment, scenario, dir='results'):
+    folder = os.path.join(dir, experiment, scenario)
+    files = os.listdir(folder)
+    
+    scores = [pd.read_csv(os.path.join(folder, f)) for f in files]
+    scores = pd.concat(scores, axis=0)
+    
+    scores['method'] = scores['method'].mask(scores['order0'] == True, scores['method'] + '_order0')
+    scores['method'] = scores['method'].mask(scores['add_mask'] == True, scores['method'] + '_mask')
+    return scores
 
-def find_best_params(scores): 
-    # Find the best MLP depth, MLP width, learning rate and weight decay.
+
+def perf_by_params(scores): 
     scores_no_na = scores.copy()
     scores_no_na['depth'] = scores_no_na['depth'].fillna(value=0)
     scores_no_na['mlp_depth'] = scores_no_na['mlp_depth'].fillna(value=0)
@@ -45,6 +55,11 @@ def find_best_params(scores):
     mean_score = mean_score.reset_index()
     mean_score = mean_score.sort_values(
         by=['method', 'n', 'prop_latent', 'R2_val'])
+    return mean_score
+
+
+def find_best_params(scores): 
+    mean_score = perf_by_params(scores)
     best_depth = mean_score.groupby(
         ['method', 'n', 'prop_latent']).last()[
             ['depth', 'mlp_depth', 'lr', 'weight_decay', 'width_factor',
@@ -72,7 +87,7 @@ def diff_to_bayes(scores, var):
     data_relative = scores.copy().set_index('method')
     data_relative[var] = data_relative.groupby(
         ['iter', 'n', 'prop_latent'])[var].transform(
-            lambda df: df - df["BayesPredictor"])
+            lambda df: df - df["bayes"])
     data_relative = data_relative.reset_index()
     data_relative['method'] = data_relative['method'].map(NAMES)
     data_relative = data_relative.query('~method.isna()').copy()
@@ -118,18 +133,27 @@ def plot_one(data, var, ax=None, type='violin', setup=False, callback=None):
     if callback:
         callback(ax)
 
+def plot_latents(data, var, ax=None, i=0, j=0, n=2e4, type='violin', callback=None):
+    if ax is None:
+        fig, axes = plt.subplots(1, 2, figsize=(15, 6), sharex='col', sharey=True)
+    
+    for k, prop_latent in enumerate([0.3, 0.7]):
+            to_plot = data.query('n == @n and prop_latent == @prop_latent')
+            if len(axes.shape) == 1:
+                ax = axes[2*j+k]
+            else:
+                ax = axes[i, 2*j+k]
+            ax.grid(axis='x')
+            ax.set_axisbelow(True)
+            plot_one(to_plot, var, ax, type, callback=callback)
+
 
 def plot_all(lst, var, n=2e4, num_experiments=2, type='violin', callback=None):
     fig, axes = plt.subplots(2, 4, figsize=(15, 6), sharex='col', sharey=True)
     
     i, j = 0, 0
     for data in lst:
-        for k, prop_latent in enumerate([0.3, 0.7]):
-            to_plot = data.query('n == @n and prop_latent == @prop_latent')
-            ax = axes[i, 2*j+k]
-            ax.grid(axis='x')
-            ax.set_axisbelow(True)
-            plot_one(to_plot, var, ax, type, callback=callback)
+        plot_latents(data, var, axes, i, j, n, type, callback)
 
         if j == num_experiments - 1:
             j = 0
