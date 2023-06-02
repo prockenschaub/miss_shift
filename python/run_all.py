@@ -8,7 +8,7 @@ from data.generation import gen_params, gen_data
 
 from estimators.neumiss import Neumiss
 from estimators.neumice import NeuMICE
-from estimators.neumiss_oracle import NeuMissOracle
+from estimators.neumiss_oracle import NeuMissOracle, NeumissLegacyOracle
 from estimators.neumice_oracle import NeuMICEOracle
 from estimators.conditional_impute_oracle import MICEOracle
 from estimators.conditional_impute import ImputeMLPPytorch
@@ -25,7 +25,7 @@ import torch
 fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m', 'mse_test_s',
           'R2_train', 'R2_val', 'R2_test', 'R2_test_m', 'R2_test_s', 
           'early_stopping', 'optimizer', 'depth',
-          'n_epochs', 'learning_rate', 'lr', 'weight_decay', 'batch_size',
+          'n_epochs', 'lr', 'weight_decay', 'batch_size',
           'type_width', 'width', 'n_draws', 'n_iter_no_change',
           'verbose', 'mlp_depth', 'init_type', 'max_iter', 'order0',
           'n_trials_no_change', 'validation_fraction', 'add_mask', 'imputation_type', 
@@ -97,6 +97,8 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         est = ProbabilisticBayesPredictor
     elif method == 'neumiss_oracle':
         est = NeuMissOracle
+    elif method == 'neumiss_legacy_oracle':
+        est = NeumissLegacyOracle
     elif method == 'neumiss':
         est = Neumiss
     elif method == 'neumice_oracle':
@@ -154,7 +156,7 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         elif method in ['bayes', 'prob_bayes']:
             reg = est(orig_params, **method_params)
             reg.fit(Xm_train, y_train)
-        elif method in ['oracle_impute', 'mice_oracle', 'neumiss_oracle', 'neumice_oracle']:
+        elif method in ['oracle_impute', 'mice_oracle', 'neumiss_oracle', 'neumiss_legacy_oracle', 'neumice_oracle']:
             reg = est(orig_params, **method_params)
             reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
         else:

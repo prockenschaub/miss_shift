@@ -1,10 +1,10 @@
-name: 'main_experiment'
+name: 'f_star'
 
 data:
-  n_features: 50
-  prop_latent: [0.3, 0.7]
+  n_features: 2
+  prop_latent: 0.3
   snr: 10
-  link: 'stairs'
+  link: 'square'
 
 missingness:
   mcar: 
@@ -14,74 +14,10 @@ missingness:
     shift:
       mdm: 'MCAR'
       missing_rate: 0.25
-  mar: 
-    orig:
-      mdm: 'MAR_logistic'
-      missing_rate: 0.5
-      prop_for_masking: 0.3
-    shift:
-      mdm: 'MAR_logistic'
-      missing_rate: 0.25
-      prop_for_masking: 0.5
-  gaussian_sm:
-    orig: 
-      mdm: 'gaussian_sm'
-      missing_rate: 0.5 
-      sm_type: 'gaussian'
-      sm_param: 2
-      perm: False
-    shift: 
-      mdm: 'gaussian_sm'
-      missing_rate: 0.25 
-      sm_type: 'gaussian'
-      sm_param: 4
-      perm: False
 
 estimators:
   bayes: 
     order0: [True, False]
-  prob_bayes: 
-    n_draws: 10
-  gbrt:
-    n_iter_no_change: 10
-    max_leaf_nodes: [50, 100, 200, 400, 600]
-    max_iter: [100, 200, 300]
-    min_samples_leaf: [10, 20, 50]
-  oracle_impute:
-    n_epochs: 1000
-    batch_size: 100
-    optimizer: 'adam'
-    early_stopping: True
-    init_type: 'uniform'
-    add_mask: [False, True]
-    mlp_depth: [1, 2, 5]
-    width_factor: [1, 5, 10]
-    weight_decay: [1.e-5, 1.e-4, 1.e-3]
-    lr: [1.e-2, 5.e-3, 1.e-3]
-  mean_impute:
-    imputation_type: 'mean'
-    n_epochs: 1000
-    batch_size: 100
-    optimizer: 'adam'
-    early_stopping: True
-    init_type: 'uniform'
-    add_mask: [False, True]
-    mlp_depth: [1, 2, 5]
-    width_factor: [1, 5, 10]
-    weight_decay: [1.e-5, 1.e-4, 1.e-3]
-    lr: [1.e-2, 5.e-3, 1.e-3]
-  mice_impute:
-    imputation_type: 'MICE'
-    n_epochs: 1000
-    batch_size: 100
-    optimizer: 'adam'
-    early_stopping: True
-    init_type: 'uniform'
-    add_mask: [False, True]
-    mlp_depth: [1, 2, 5]
-    width_factor: [1, 5, 10]
-    weight_decay: [1.e-5, 1.e-4, 1.e-3]
-    lr: [1.e-2, 5.e-3, 1.e-3]
   neumiss:
     n_epochs: 1000
     batch_size: 100
@@ -104,4 +40,32 @@ estimators:
     weight_decay: [1.e-5, 1.e-4, 1.e-3]
     lr: [1.e-2, 5.e-3, 1.e-3]
     depth: [20] 
-  
+  neumice_oracle:
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    init_type: 'uniform'
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
+    depth: [20] 
+  neumiss_oracle:
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    init_type: 'uniform'
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
+    depth: [20] 
+  neumiss_legacy_oracle:
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    init_type: 'uniform'
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
+    depth: [20] 
+  mice_oracle:
+    n_draws: 5
