@@ -1,0 +1,71 @@
+name: 'sample_size'
+
+data:
+  n_features: 50
+  prop_latent: [0.3, 0.7]
+  snr: 10
+  link: 'stairs'
+
+missingness:
+  mcar: 
+    orig: 
+      mdm: 'MCAR'
+      missing_rate: 0.5
+    shift:
+      mdm: 'MCAR'
+      missing_rate: 0.25
+  mcar_low:
+    orig:
+      mdm: 'MCAR'
+      missing_rate: 0.25
+    shift: 
+      mdm: 'MCAR'
+      missing_rate: 0.5
+  mar: 
+    orig:
+      mdm: 'MAR_logistic'
+      missing_rate: 0.5
+      prop_for_masking: 0.3
+    shift:
+      mdm: 'MAR_logistic'
+      missing_rate: 0.25
+      prop_for_masking: 0.5
+  gaussian_sm:
+    orig: 
+      mdm: 'gaussian_sm'
+      missing_rate: 0.5 
+      sm_type: 'gaussian'
+      sm_param: 2
+      perm: False
+    shift: 
+      mdm: 'gaussian_sm'
+      missing_rate: 0.25 
+      sm_type: 'gaussian'
+      sm_param: 4
+      perm: False
+
+estimators:
+  bayes: 
+    order0: False
+  neumiss:
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    init_type: 'uniform'
+    mlp_depth: [1, 2, 5]
+    width_factor: [1, 5, 10]
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
+    depth: [20]
+  neumice:
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    init_type: 'uniform'
+    mlp_depth: [1, 2, 5]
+    width_factor: [1, 5, 10]
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
+    depth: [20] 
