@@ -60,7 +60,7 @@ class OracleImputeMLPPytorch(BaseEstimator):
             mu_mis_obs = mu[mis] + sigma_misobs.dot(
                 sigma_obs_inv).dot(t[obs] - mu[obs])
 
-            if masking_params['mdm'] in ['MCAR', 'MAR']:
+            if masking_params['mdm'] in ['MCAR', 'MAR_logistic']:
                 t[mis] = mu_mis_obs
 
             elif masking_params['mdm'] == 'gaussian_sm':
