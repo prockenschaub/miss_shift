@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from networks.mlp import MLP_reg
+from ..networks.mlp import MLP_reg
 
 
 class OracleImputeMLPPytorch(BaseEstimator):

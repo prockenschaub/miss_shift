@@ -2,9 +2,9 @@ import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, SimpleImputer
-from networks.mlp import MLP_reg
 
-from misc.iterativeimputer import FastIterativeImputer
+from ..networks.mlp import MLP_reg
+from ..misc.iterativeimputer import FastIterativeImputer
 
 class ImputeMLPPytorch(BaseEstimator):
     """Imputes and then runs a MLP (Pytorch based, same as for NeuMiss)

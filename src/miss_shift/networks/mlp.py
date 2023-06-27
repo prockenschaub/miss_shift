@@ -8,7 +8,8 @@ import torch.nn as nn
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from misc.pytorchtools import EarlyStopping
+
+from ..misc.pytorchtools import EarlyStopping
 
 
 class Mlp(nn.Module):

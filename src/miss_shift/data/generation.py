@@ -6,7 +6,8 @@ from sklearn.utils import check_random_state
 from scipy.stats import norm
 from math import sqrt, log, pi
 from scipy.optimize import root_scalar
-from data.amputation import MCAR, MAR_logistic, MNAR_logistic, MNAR_logistic_uniform, gaussian_sm
+
+from .amputation import MCAR, MAR_logistic, MNAR_logistic, MNAR_logistic_uniform, gaussian_sm
 
 def _validate_masking_params(masking_params):
     mdm = masking_params['mdm']

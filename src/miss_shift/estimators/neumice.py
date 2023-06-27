@@ -9,8 +9,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from misc.pytorchtools import EarlyStopping
-from networks.neumice import NeuMICEBlock
+from ..misc.pytorchtools import EarlyStopping
+from ..networks.neumice import NeuMICEBlock
 
 
 class NeuMICEMLP(nn.Module):
