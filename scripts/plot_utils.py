@@ -21,8 +21,8 @@ NAMES = {
 
 # Preprocess the scores
 
-def load_scores(experiment, scenario, dir='results'):
-    folder = os.path.join(dir, experiment, scenario)
+def load_scores(experiment, link, scenario, dir='results'):
+    folder = os.path.join(dir, experiment, link, scenario)
     files = os.listdir(folder)
     
     scores = [pd.read_csv(os.path.join(folder, f)) for f in files]
@@ -59,7 +59,27 @@ def perf_by_params(scores):
 
 
 def find_best_params(scores): 
-    mean_score = perf_by_params(scores)
+    scores_no_na = scores.copy()
+    scores_no_na['depth'] = scores_no_na['depth'].fillna(value=0)
+    scores_no_na['mlp_depth'] = scores_no_na['mlp_depth'].fillna(value=0)
+    scores_no_na['lr'] = scores_no_na['lr'].fillna(value=0)
+    scores_no_na['weight_decay'] = scores_no_na['weight_decay'].fillna(
+        value=0)
+    scores_no_na['width_factor'] = scores_no_na['width_factor'].fillna(
+        value=0)
+    scores_no_na['max_leaf_nodes'] = scores_no_na['max_leaf_nodes'].fillna(
+        value=0)
+    scores_no_na['min_samples_leaf'] = scores_no_na[
+        'min_samples_leaf'].fillna(value=0)
+    scores_no_na['max_iter'] = scores_no_na['max_iter'].fillna(value=0)
+    # Averaging over iterations
+    mean_score = scores_no_na.groupby(
+        ['method', 'n', 'prop_latent', 'depth', 'mlp_depth', 'lr',
+            'weight_decay', 'width_factor', 'max_leaf_nodes',
+            'min_samples_leaf', 'max_iter'])['R2_val'].mean()
+    mean_score = mean_score.reset_index()
+    mean_score = mean_score.sort_values(
+        by=['method', 'n', 'prop_latent', 'R2_val'])
     best_depth = mean_score.groupby(
         ['method', 'n', 'prop_latent']).last()[
             ['depth', 'mlp_depth', 'lr', 'weight_decay', 'width_factor',
@@ -104,7 +124,8 @@ def plot_one(data, var, ax=None, type='violin', setup=False, callback=None):
 
     sns.set_palette('bright')
 
-    data['method'] = data['method'].cat.remove_unused_categories()
+    data = data.copy()
+    data.loc[:, 'method'] = data['method'].cat.remove_unused_categories()
     methods = data['method'].unique()
 
     if type == 'violin':
@@ -133,8 +154,8 @@ def plot_one(data, var, ax=None, type='violin', setup=False, callback=None):
     if callback:
         callback(ax)
 
-def plot_latents(data, var, ax=None, i=0, j=0, n=2e4, type='violin', callback=None):
-    if ax is None:
+def plot_latents(data, var, axes=None, i=0, j=0, n=2e4, type='violin', callback=None):
+    if axes is None:
         fig, axes = plt.subplots(1, 2, figsize=(15, 6), sharex='col', sharey=True)
     
     for k, prop_latent in enumerate([0.3, 0.7]):
