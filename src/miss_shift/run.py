@@ -1,69 +1,16 @@
-import os
 from copy import deepcopy
-import numpy as np
-import pandas as pd
-from collections import namedtuple
-from joblib import Parallel, delayed
-from data.generation import gen_params, gen_data
 
-from estimators.neumiss import Neumiss
-from estimators.neumice import NeuMICE
-from estimators.conditional_impute import ImputeMLPPytorch
-from estimators.oracle_impute import OracleImputeMLPPytorch
-from sklearn.ensemble import HistGradientBoostingRegressor
-from oracles.conditional import BayesPredictor_GSM_nonlinear, BayesPredictor_MCAR_MAR_nonlinear
-from oracles.probabilistic import ProbabilisticBayesPredictor
-
-from tqdm import tqdm
 import torch
+from sklearn.ensemble import HistGradientBoostingRegressor
 
+from .data.generation import gen_params, gen_data
+from .estimators.neumiss import Neumiss
+from .estimators.neumice import NeuMICE
+from .estimators.conditional_impute import ImputeMLPPytorch
+from .estimators.oracle_impute import OracleImputeMLPPytorch
+from .oracles.conditional import BayesPredictor_GSM_nonlinear, BayesPredictor_MCAR_MAR_nonlinear
+from .oracles.probabilistic import ProbabilisticBayesPredictor
 
-# Result item to create the DataFrame in a consistent way.
-fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m', 'mse_test_s',
-          'R2_train', 'R2_val', 'R2_test', 'R2_test_m', 'R2_test_s', 
-          'early_stopping', 'optimizer', 'depth',
-          'n_epochs', 'learning_rate', 'lr', 'weight_decay', 'batch_size',
-          'type_width', 'width', 'n_draws', 'n_iter_no_change',
-          'verbose', 'mlp_depth', 'init_type', 'max_iter', 'order0',
-          'n_trials_no_change', 'validation_fraction', 'add_mask', 'imputation_type', 
-          'n_features', 'prop_latent', 'snr', 'miss_orig', 'miss_shift',
-          'link', 'curvature', 'width_factor', 'max_leaf_nodes', 'min_samples_leaf']
-
-ResultItem = namedtuple('ResultItem', fields)
-ResultItem.__new__.__defaults__ = (np.nan, )*len(ResultItem._fields)
-
-
-def run(n_trials, n_train, n_val, n_test, mdm, data_descs, methods_params,
-        out_dir, n_jobs=1):
-
-    for nm, scope in methods_params.items():
-        runs = []
-        for params in scope:
-            for data_desc in data_descs.itertuples(index=False):
-                data_desc = dict(data_desc._asdict())
-                for it in range(n_trials):
-                    runs.append([data_desc, nm, params, it])
-
-        results = Parallel(n_jobs=n_jobs)(
-             delayed(run_one)(data_desc, method, method_params, it, n_train,
-                             n_test, n_val, mdm)
-             for data_desc, method, method_params, it in tqdm(runs)
-         )
-        
-        # combined_results is a list of all result items that combine the obtained
-        # performances and the corresponding data and method parameters.
-        # Note that results has the same size as store_params (correspondance)
-        combined_results = []
-        for i in range(len(runs)):
-            data_desc, method, method_params, _ = runs[i]
-            result = results[i]
-            for result_n in result:
-                result_item = ResultItem(
-                    method=method, **result_n, **data_desc, **method_params)
-                combined_results.append(result_item)
-
-        combined_results = pd.DataFrame(combined_results)
-        combined_results.to_csv(os.path.join(out_dir, '{}.csv'.format(nm)), index=False)
 
 def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
 

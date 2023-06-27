@@ -4,11 +4,17 @@ Defines:
  - the list of methods to compare and their hyperparameters,
 And launches all experiments.
 '''
+from collections import namedtuple
 import os
 import yaml
-import pandas as pd
 import argparse
-from run_all import run
+from joblib import Parallel, delayed
+from tqdm import tqdm
+
+import numpy as np
+import pandas as pd
+
+from miss_shift.run import run_one
 
 
 def configure_runs(method, method_args):
@@ -17,9 +23,22 @@ def configure_runs(method, method_args):
         method_params = method_params.explode(v)
     return method_params.to_dict(orient='records')
 
+# Result item to create the DataFrame in a consistent way.
+fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m', 'mse_test_s',
+          'R2_train', 'R2_val', 'R2_test', 'R2_test_m', 'R2_test_s', 
+          'early_stopping', 'optimizer', 'depth',
+          'n_epochs', 'learning_rate', 'lr', 'weight_decay', 'batch_size',
+          'type_width', 'width', 'n_draws', 'n_iter_no_change',
+          'verbose', 'mlp_depth', 'init_type', 'max_iter', 'order0',
+          'n_trials_no_change', 'validation_fraction', 'add_mask', 'imputation_type', 
+          'n_features', 'prop_latent', 'snr', 'miss_orig', 'miss_shift',
+          'link', 'curvature', 'width_factor', 'max_leaf_nodes', 'min_samples_leaf']
+
+ResultItem = namedtuple('ResultItem', fields)
+ResultItem.__new__.__defaults__ = (np.nan, )*len(ResultItem._fields)
+
 
 def launch(args):
-    
     # Load the experiment definition
     file_path = f"experiments/{args.experiment}.yaml"
     if not os.path.exists(file_path):
@@ -79,18 +98,35 @@ def launch(args):
     out_dir = os.path.join(args.out_dir, experiment['name'], args.link, args.scenario)
     os.makedirs(out_dir, exist_ok=True)
 
-    run_params = {
-            'n_trials': args.n_trials,
-            'n_train': args.n_train,
-            'n_val': args.n_val,
-            'n_test': args.n_test,
-            'mdm': miss_orig['mdm'],
-            'data_descs': data_descs,
-            'methods_params': methods_params,
-            'out_dir': out_dir,
-            'n_jobs': args.n_jobs}
+    # Run all trials for all hyperparam configurations of all models and store results
+    for nm, scope in methods_params.items():
+        runs = []
+        for params in scope:
+            for data_desc in data_descs.itertuples(index=False):
+                data_desc = dict(data_desc._asdict())
+                for it in range(args.n_trials):
+                    runs.append([data_desc, nm, params, it])
 
-    run(**run_params)
+        results = Parallel(n_jobs=args.n_jobs)(
+             delayed(run_one)(data_desc, method, method_params, it, args.n_train,
+                             args.n_test, args.n_val, miss_orig['mdm'])
+             for data_desc, method, method_params, it in tqdm(runs)
+         )
+        
+        # combined_results is a list of all result items that combine the obtained
+        # performances and the corresponding data and method parameters.
+        # Note that results has the same size as store_params (correspondance)
+        combined_results = []
+        for i in range(len(runs)):
+            data_desc, method, method_params, _ = runs[i]
+            result = results[i]
+            for result_n in result:
+                result_item = ResultItem(
+                    method=method, **result_n, **data_desc, **method_params)
+                combined_results.append(result_item)
+
+        combined_results = pd.DataFrame(combined_results)
+        combined_results.to_csv(os.path.join(out_dir, '{}.csv'.format(nm)), index=False)
 
 
 if __name__ == "__main__":
