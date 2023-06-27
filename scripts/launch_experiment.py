@@ -84,7 +84,7 @@ def launch(args):
     
     if args.estimator == "all":
         estimators = list(experiment['estimators'].keys())
-    if args.estimator.isdigit():
+    elif args.estimator.isdigit():
         estimators = [list(experiment['estimators'].keys())[int(args.estimator)]]
     else:
         estimators = [args.estimator]
