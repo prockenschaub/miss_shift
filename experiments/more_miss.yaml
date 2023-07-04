@@ -21,13 +21,13 @@ missingness:
       mdm: 'gaussian_sm'
       missing_rate: 0.25 
       sm_type: 'gaussian'
-      sm_param: 2
+      sm_param: 1
       perm: False
     shift: 
       mdm: 'gaussian_sm'
       missing_rate: 0.5 
       sm_type: 'gaussian'
-      sm_param: 4
+      sm_param: 2
       perm: False
 
 estimators:
