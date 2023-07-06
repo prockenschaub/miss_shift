@@ -122,12 +122,12 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         r2_test_m = 1 - mse_test_m/var_test
 
 
-        # Update oracles for missingness shift prediction
-        if method in ['bayes', 'prob_bayes', 'oracle_impute']:
-            reg.data_params = shift_params
-        pred_test_s = reg.predict(Xs)
-        mse_test_s = ((ys - pred_test_s)**2).mean()
-        var_test_s = ((ys - ys.mean())**2).mean()
+        # Evaluate the shifted data 
+        Xs_test = Xs[0:n_test] # fully observed
+        ys_test = ys[0:n_test]
+        pred_test_s = reg.predict(Xs_test)
+        mse_test_s = ((ys_test - pred_test_s)**2).mean()
+        var_test_s = ((ys_test - ys_test.mean())**2).mean()
         r2_test_s = 1 - mse_test_s/var_test_s
 
 
