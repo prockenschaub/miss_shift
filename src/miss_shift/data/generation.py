@@ -29,21 +29,22 @@ def _validate_masking_params(masking_params):
 
 
 def gen_params(n_features, prop_latent, masking_params, snr, 
-               link='linear', curvature=1, random_state=None):
+               link='linear', curvature=1, seed_data=None, seed_ampute=None):
     _validate_masking_params(masking_params)
     
     if prop_latent > 1 or prop_latent < 0:
         raise ValueError("prop_latent should be between 0 and 1")
 
-    rng = check_random_state(random_state)
+    rng_data = check_random_state(seed_data)
+    rng_ampute = check_random_state(seed_ampute)
 
     # Generate covariance and mean
     # ---------------------------
-    B = rng.randn(n_features, int(prop_latent*n_features))
+    B = rng_data.randn(n_features, int(prop_latent*n_features))
     cov = B.dot(B.T) + np.diag(
-        rng.uniform(low=0.01, high=0.1, size=n_features))
+        rng_data.uniform(low=0.01, high=0.1, size=n_features))
 
-    mean = np.zeros(n_features) + rng.randn(n_features)
+    mean = np.zeros(n_features) + rng_data.randn(n_features)
 
     # For self-masking, adapt the remaining parameters to obtain the
     # desired missing rate
@@ -85,7 +86,7 @@ def gen_params(n_features, prop_latent, masking_params, snr,
             masking_params['sm_param'] = sm_params
 
             if masking_params.get('perm', False):
-                masking_params['perm'] = rng.permutation(n_features)
+                masking_params['perm'] = rng_ampute.permutation(n_features)
 
     # Generate beta
     beta = np.repeat(1., n_features + 1)
@@ -96,9 +97,10 @@ def gen_params(n_features, prop_latent, masking_params, snr,
 
 
 
-def gen_data(n_sizes, data_params, random_state=None):
+def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
 
-    rng = check_random_state(random_state)
+    rng_data = check_random_state(seed_data)
+    rng_ampute = check_random_state(seed_ampute)
 
     (n_features, mean, cov, beta, masking_params, snr, link, curvature) = data_params
 
@@ -109,7 +111,7 @@ def gen_data(n_sizes, data_params, random_state=None):
 
     for _, n_samples in enumerate(n_sizes):
 
-        current_X = rng.multivariate_normal(
+        current_X = rng_data.multivariate_normal(
                 mean=mean, cov=cov,
                 size=n_samples-current_size,
                 check_valid='raise')
@@ -135,7 +137,7 @@ def gen_data(n_sizes, data_params, random_state=None):
         var_y = np.mean((current_y - np.mean(current_y))**2)
         sigma2_noise = var_y/snr
 
-        noise = rng.normal(
+        noise = rng_data.normal(
             loc=0, scale=sqrt(sigma2_noise), size=n_samples-current_size)
         current_y += noise
 
@@ -143,22 +145,22 @@ def gen_data(n_sizes, data_params, random_state=None):
         missing_rate = masking_params['missing_rate']
 
         if masking == 'MCAR':
-            current_M = MCAR(current_X, missing_rate, rng)
+            current_M = MCAR(current_X, missing_rate, rng_ampute)
         elif masking == 'MAR_logistic':
             prop_for_masking = masking_params['prop_for_masking']
             sample_vars = masking_params.get('sample_vars', False)
             current_M = MAR_logistic(current_X, missing_rate, prop_for_masking,
-                                     rng, sample_vars=sample_vars)
+                                     rng_ampute, sample_vars=sample_vars)
         elif masking == 'MNAR_logistic':
-            current_M = MNAR_logistic(current_X, missing_rate, rng)
+            current_M = MNAR_logistic(current_X, missing_rate, rng_ampute)
         elif masking == 'MNAR_logistic_uniform':
             current_M = MNAR_logistic_uniform(current_X, missing_rate,
-                                              prop_for_masking, rng)
+                                              prop_for_masking, rng_ampute)
         elif masking == 'gaussian_sm':
             sm_type = masking_params['sm_type']
             sm_param = masking_params['sm_param']
             perm = masking_params.get('perm', False)
-            current_M = gaussian_sm(current_X, sm_type, sm_param, mean, cov, rng)
+            current_M = gaussian_sm(current_X, sm_type, sm_param, mean, cov, rng_ampute)
             if perm:
                 current_M = current_M[:, perm]
 
