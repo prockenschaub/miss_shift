@@ -35,7 +35,7 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
     if method == 'bayes':
         if mdm == 'gaussian_sm':
             est = BayesPredictor_GSM_nonlinear
-        elif mdm in ['MCAR', 'MAR_logistic']:
+        elif mdm in ['MCAR', 'MAR_logistic', 'MAR_monotone_logistic']:
             est = BayesPredictor_MCAR_MAR_nonlinear
     elif method == "prob_bayes":
         est = ProbabilisticBayesPredictor

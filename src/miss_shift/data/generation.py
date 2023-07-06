@@ -7,7 +7,7 @@ from scipy.stats import norm
 from math import sqrt, log, pi
 from scipy.optimize import root_scalar
 
-from .amputation import MCAR, MAR_logistic, MNAR_logistic, MNAR_logistic_uniform, gaussian_sm
+from .amputation import MCAR, MAR_logistic, MAR_monotone_logistic, MNAR_logistic, MNAR_logistic_uniform, gaussian_sm
 
 def _validate_masking_params(masking_params):
     mdm = masking_params['mdm']
@@ -150,6 +150,11 @@ def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
             prop_for_masking = masking_params['prop_for_masking']
             sample_vars = masking_params.get('sample_vars', False)
             current_M = MAR_logistic(current_X, missing_rate, prop_for_masking,
+                                     rng_ampute, sample_vars=sample_vars)
+        elif masking == 'MAR_monotone_logistic':
+            prop_for_masking = masking_params['prop_for_masking']
+            sample_vars = masking_params.get('sample_vars', False)
+            current_M = MAR_monotone_logistic(current_X, missing_rate, prop_for_masking,
                                      rng_ampute, sample_vars=sample_vars)
         elif masking == 'MNAR_logistic':
             current_M = MNAR_logistic(current_X, missing_rate, rng_ampute)

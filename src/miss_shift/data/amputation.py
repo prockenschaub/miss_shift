@@ -131,6 +131,63 @@ def MAR_logistic(X, p, p_obs, random_state, sample_vars=True):
     return mask
 
 
+def MAR_monotone_logistic(X, p, p_obs, random_state, sample_vars=True):
+
+    rng = check_random_state(random_state)
+
+    n, d = X.shape
+    mask = np.zeros((n, d))
+
+    # number of variables that will have MCAR missing values
+    # (at least one variable)
+    d_obs = max(int(p_obs * d), 1)
+    # number of variables that will have monotone MAR missing values
+    d_na = d - d_obs
+
+    # Sample variables that will have MCAR and MAR values
+    if sample_vars:
+        idxs_obs = rng.choice(d, d_obs, replace=False)
+        idxs_nas = np.array([i for i in range(d) if i not in idxs_obs])
+    else: 
+        idxs_obs = np.arange(d_obs)
+        idxs_nas = np.arange(d_obs, d)
+
+    # Sample the MCAR
+    mask[:, idxs_obs] = MCAR(X[:, idxs_obs], p, rng)
+
+    # Other variables will have NA proportions that depend on those remaining observed
+    # variables, through a logistic model. The parameters of this logistic
+    # model are random, and adapted to the scale of each variable.
+    mu = X.mean(0)
+    cov = (X-mu).T.dot(X-mu)/n
+    cov_obs = cov[np.ix_(idxs_obs, idxs_obs)]
+    coeffs = rng.randn(d_obs, d_na)
+    v = np.array([coeffs[:, j].dot(cov_obs).dot(
+        coeffs[:, j]) for j in range(d_na)])
+    steepness = rng.uniform(low=0.1, high=0.5, size=d_na)
+    coeffs /= steepness*np.sqrt(v)
+
+    # Move the intercept to have the desired amount of missing values
+    Xpartial = X.copy()
+    np.putmask(Xpartial, mask, 0)
+    intercepts = np.zeros((d_na))
+    for j in range(d_na):
+        w = coeffs[:, j]
+
+        def f(b):
+            s = sigmoid(Xpartial[:, idxs_obs].dot(w) + b) - p
+            return s.mean()
+
+        res = fsolve(f, x0=0)
+        intercepts[j] = res[0]
+
+    ps = sigmoid(Xpartial[:, idxs_obs].dot(coeffs) + intercepts)
+    ber = rng.rand(n, d_na)
+    mask[:, idxs_nas] = ber < ps
+
+    return mask
+
+
 def MNAR_logistic(X, p, random_state):
     """
     Missing not at random mechanism with a logistic self-masking model.

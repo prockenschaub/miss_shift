@@ -28,8 +28,8 @@ class ProbabilisticBayesPredictor(BaseEstimator):
         
         mdm = masking_params['mdm']
 
-        if mdm not in ['MCAR', 'MAR_logistic', 'gaussian_sm']:
-            raise ValueError('`mdm` should be one of `MCAR`, `MAR_logistic`, or `gaussian_sm`')
+        if mdm not in ['MCAR', 'MAR_logistic', 'MAR_monotone_logistic', 'gaussian_sm']:
+            raise ValueError('`mdm` should be one of `MCAR`, `MAR_logistic`, `MAR_monotone_logistic`,or `gaussian_sm`')
         elif mdm == 'gaussian_sm':
             sm_params = masking_params['sm_param']
             tsigma2 = sm_params['sigma2_tilde']
@@ -52,7 +52,7 @@ class ProbabilisticBayesPredictor(BaseEstimator):
             mu_cond = mu[mis] + sigma_misobs.dot(sigma_obs_inv).dot(t[obs] - mu[obs])
             sigma_cond = sigma_mis - sigma_misobs.dot(sigma_obs_inv).dot(sigma_misobs.T) + np.diag(np.repeat(1e-6, repeats=len(mis)))
 
-            if mdm in ['MCAR', 'MAR_logistic']:
+            if mdm in ['MCAR', 'MAR_logistic', 'MAR_monotone_logistic']:
                     t[mis] = np.random.multivariate_normal(mu_cond, sigma_cond)
 
             elif mdm == 'gaussian_sm':
