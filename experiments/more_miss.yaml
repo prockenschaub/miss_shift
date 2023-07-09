@@ -7,6 +7,13 @@ data:
   link: 'stairs'
 
 missingness:
+  mcar: 
+    orig: 
+      mdm: 'MCAR'
+      missing_rate: 0.25
+    shift: 
+      mdm: 'MCAR'
+      missing_rate: 0.5
   mar: 
     orig:
       mdm: 'MAR_logistic'
