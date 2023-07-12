@@ -9,6 +9,7 @@ import os
 import yaml
 import argparse
 from joblib import Parallel, delayed
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -99,6 +100,8 @@ def launch(args):
 
     # Run all trials for all hyperparam configurations of all models and store results
     for nm, scope in methods_params.items():
+        print(f'Start running trails for model {nm}: {datetime.now()}')
+        
         runs = []
         for params in scope:
             for data_desc in data_descs.itertuples(index=False):
@@ -112,6 +115,8 @@ def launch(args):
              for data_desc, method, method_params, it in runs
          )
         
+        print(f'Combining results for model {nm}: {datetime.now()}')
+
         # combined_results is a list of all result items that combine the obtained
         # performances and the corresponding data and method parameters.
         # Note that results has the same size as store_params (correspondance)
