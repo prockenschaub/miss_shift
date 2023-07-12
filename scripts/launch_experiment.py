@@ -9,7 +9,6 @@ import os
 import yaml
 import argparse
 from joblib import Parallel, delayed
-from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
@@ -107,10 +106,10 @@ def launch(args):
                 for it in range(args.n_trials):
                     runs.append([data_desc, nm, params, it])
 
-        results = Parallel(n_jobs=args.n_jobs)(
+        results = Parallel(n_jobs=args.n_jobs, verbose=11)(
              delayed(run_one)(data_desc, method, method_params, it, args.n_train,
                              args.n_test, args.n_val, miss_orig['mdm'])
-             for data_desc, method, method_params, it in tqdm(runs)
+             for data_desc, method, method_params, it in runs
          )
         
         # combined_results is a list of all result items that combine the obtained

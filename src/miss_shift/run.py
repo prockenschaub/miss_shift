@@ -62,8 +62,6 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         n = n - n_val - n_test
         n_val_half = n_val//2
 
-        print('method: {}, dim: {}, it: {}'.format(method, (n, p), it))
-
         # test data
         X_test = X[0:n_test] # fully observed
         Xm_test = Xm[0:n_test] # partially observed
