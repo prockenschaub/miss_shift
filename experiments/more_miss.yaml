@@ -50,7 +50,7 @@ estimators:
   bayes: 
     order0: [True, False]
   prob_bayes: 
-    n_draws: 10
+    n_draws: 5
   mice_impute:
     imputation_type: 'MICE'
     n_epochs: 1000
@@ -65,7 +65,7 @@ estimators:
     lr: [1.e-2, 5.e-3, 1.e-3]
   multimice_impute:
     imputation_type: 'MultiMICE'
-    n_draws: 10
+    n_draws: 5
     n_epochs: 1000
     batch_size: 100
     optimizer: 'adam'
