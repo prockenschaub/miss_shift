@@ -100,7 +100,7 @@ def launch(args):
 
     # Run all trials for all hyperparam configurations of all models and store results
     for nm, scope in methods_params.items():
-        print(f'Start running trails for model {nm}: {datetime.now()}')
+        print(f'Start running trials for model {nm}: {datetime.now()}')
         
         runs = []
         for params in scope:

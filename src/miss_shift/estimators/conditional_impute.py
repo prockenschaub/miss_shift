@@ -23,7 +23,7 @@ class ImputeMLPPytorch(BaseEstimator):
         The dictionary containing the parameters for the MLP.
     """
 
-    def __init__(self, add_mask, imputation_type, n_draws=5, **mlp_params):
+    def __init__(self, add_mask, imputation_type, n_draws=5, verbose=False, **mlp_params):
 
         self.add_mask = add_mask
         self.imputation_type = imputation_type
@@ -33,11 +33,11 @@ class ImputeMLPPytorch(BaseEstimator):
         if self.imputation_type == 'mean':
             self._imp = SimpleImputer(missing_values=np.nan, strategy='mean')
         elif self.imputation_type == 'MICE':
-            self._imp = IterativeImputer(random_state=0)
+            self._imp = IterativeImputer(random_state=0, verbose=2*int(verbose))
         elif self.imputation_type == 'MultiMICE':
-            self._imp = FastIterativeImputer(random_state=0, sample_posterior=True, max_iter=5)
+            self._imp = FastIterativeImputer(random_state=0, sample_posterior=True, max_iter=5, verbose=2*int(verbose))
 
-        self._reg = MLP_reg(is_mask=add_mask, **self.mlp_params)
+        self._reg = MLP_reg(is_mask=add_mask, verbose=verbose, **self.mlp_params)
 
     def concat_mask(self, X, T):
         if self.imputation_type == 'MultiMICE':
