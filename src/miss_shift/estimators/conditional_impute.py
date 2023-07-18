@@ -41,12 +41,13 @@ class ImputeMLPPytorch(BaseEstimator):
 
     def concat_mask(self, X, T):
         if self.imputation_type == 'MultiMICE':
-            # replicate the mask, because T is now of shape [n_samples*n_draws, n_features]
+            # replicate the mask, because T is now of shape [n_samples, n_draws, n_features]
             M = np.isnan(X)
-            M = np.repeat(M, self.n_draws, axis=0)
+            M = np.repeat(M, self.n_draws, axis=0).reshape(T.shape)
+            T = np.concatenate((T, M), axis=2)
         else:
             M = np.isnan(X)
-        T = np.hstack((T, M))
+            T = np.hstack((T, M))
         return T
 
     def impute(self, X):
@@ -54,8 +55,7 @@ class ImputeMLPPytorch(BaseEstimator):
             T = []
             for _ in range(self.n_draws):
                 T.append(self._imp.transform(X))
-            return np.stack(T).reshape((self.n_draws * X.shape[0], X.shape[1]), order='F')
-            #return np.concatenate(T, axis=0)
+            return np.stack(T)
         else:
             return self._imp.transform(X)
 
@@ -67,10 +67,6 @@ class ImputeMLPPytorch(BaseEstimator):
         if self.add_mask:
             T = self.concat_mask(X, T)
             T_val = self.concat_mask(X_val, T_val)
-        if T.shape[0] != y.shape[0]:  # self.imputation_type == 'MultiMICE':
-            assert T.shape[0] == y.shape[0] * self.n_draws
-            y = np.repeat(y, self.n_draws, axis=0)
-            y_val = np.repeat(y_val, self.n_draws, axis=0)
         self._reg.fit(T, y, X_val=T_val, y_val=y_val)
         return self
 
@@ -78,11 +74,4 @@ class ImputeMLPPytorch(BaseEstimator):
         T = self.impute(X)
         if self.add_mask:
             T = self.concat_mask(X, T)
-        if T.shape[0] == X.shape[0]:
-            # no adveraging of the multiple imputation is required
-            return self._reg.predict(T)
-        else:
-            y_pred = self._reg.predict(T)  # y_pred [nb_samples*n_draws]
-            y_pred = np.reshape(y_pred, [X.shape[0], -1])
-            y_pred = np.mean(y_pred, axis=-1)
-            return y_pred
+        return self._reg.predict(T)
