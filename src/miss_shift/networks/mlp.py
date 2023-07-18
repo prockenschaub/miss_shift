@@ -130,8 +130,14 @@ class MLP_reg(RegressorMixin):
         self.mse_val = []
 
     def fit(self, X, y, X_val=None, y_val=None):
+        multi_impute = True if len(X.shape) == 3 else False
 
-        n_samples, n_features_all = X.shape
+        if multi_impute:
+            n_imputes, n_samples, n_features_all = X.shape
+            _, n_val, _ = X_val.shape
+            X_val = np.swapaxes(X_val, 1, 0).reshape(n_imputes * n_val, n_features_all)
+        else:
+            n_samples, n_features_all = X.shape
 
         if self.is_mask:
             n_features = n_features_all//2
@@ -172,17 +178,16 @@ class MLP_reg(RegressorMixin):
             if self.verbose:
                 print("epoch nb {}".format(i_epoch))
 
-            # TODO: removed for now to have multiple imputations of the same sample
-            #       within the same batch. should not be a problem, as all of our 
-            #       samples are by design independent but maybe we can make this 
-            #       optional or fix the multi impute problem differently.
-            # Shuffle tensors to have different batches at each epoch
-            #ind = torch.randperm(n_samples)
-            #X = X[ind]
-            #y = y[ind]
+            if multi_impute:
+                imp = np.random.randint(n_imputes)
+                X_epoch = X[imp]
+            else:
+                X_epoch = X
 
-            xx = torch.split(X, split_size_or_sections=self.batch_size, dim=0)
-            yy = torch.split(y, split_size_or_sections=self.batch_size, dim=0)
+            # Shuffle tensors to have different batches at each epoch
+            ind = torch.randperm(n_samples)
+            xx = torch.split(X_epoch[ind], split_size_or_sections=self.batch_size, dim=0)
+            yy = torch.split(y[ind], split_size_or_sections=self.batch_size, dim=0)
 
             param_group = self.optimizer.param_groups[0]
             lr = param_group['lr']
@@ -205,7 +210,7 @@ class MLP_reg(RegressorMixin):
 
             # Evaluate the train loss
             with torch.no_grad():
-                y_hat = self.net(X, phase='test')
+                y_hat = self.net(X_epoch, phase='test')
                 loss = criterion(y_hat, y)
                 mse = loss.item()
                 self.mse_train.append(mse)
@@ -221,6 +226,10 @@ class MLP_reg(RegressorMixin):
             if X_val is not None:
                 with torch.no_grad():
                     y_hat = self.net(X_val, phase='test')
+
+                    if multi_impute:
+                        y_hat = y_hat.reshape(n_val, n_imputes).mean(dim=1)
+
                     loss_val = criterion(y_hat, y_val)
                     mse_val = loss_val.item()
                     self.mse_val.append(mse_val)
@@ -229,7 +238,7 @@ class MLP_reg(RegressorMixin):
                     r2_val = 1 - mse_val/var
                     self.r2_val.append(r2_val)
                     if self.verbose:
-                        print("Validation loss is: {}".format(r2_val))
+                        print("Validation loss - r2: {}, mse: {}".format(r2_val, mse_val))
 
                 if self.early_stop:
                     early_stopping(mse_val, self.net)
@@ -245,10 +254,18 @@ class MLP_reg(RegressorMixin):
             self.net.load_state_dict(early_stopping.checkpoint)
 
     def predict(self, X):
+        multi_impute = True if len(X.shape) == 3 else False
+
+        if multi_impute:
+            n_imputes, n_samples, _ = X.shape
+            X = np.swapaxes(X, 1, 0).reshape(n_imputes * n_samples, -1)
 
         X = torch.as_tensor(X, dtype=torch.double)
 
         with torch.no_grad():
             y_hat = self.net(X, phase='test')
+
+        if multi_impute:
+            y_hat = y_hat.reshape(n_samples, n_imputes).mean(dim=1)
 
         return np.array(y_hat)
