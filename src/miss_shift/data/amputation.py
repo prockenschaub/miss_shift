@@ -188,6 +188,41 @@ def MAR_monotone_logistic(X, p, p_obs, random_state, sample_vars=True):
     return mask
 
 
+def MAR_on_y(X, y, p, random_state):
+
+    rng = check_random_state(random_state)
+
+    n, d = X.shape
+    mask = np.zeros((n, d))
+
+    mu = y.mean(0)
+    var = (y - mu).T.dot(y - mu) / n
+    coeffs = rng.randn(d)
+    v = np.array([coeffs[j] ** 2 * var for j in range(d)]) 
+    steepness = rng.uniform(low=0.1, high=0.5, size=d)
+    coeffs /= steepness * np.sqrt(v)
+
+    # Move the intercept to have the desired amount of missing values
+    intercepts = np.zeros((d))
+    for j in range(d):
+        w = coeffs[:, j]
+
+        def f(b):
+            s = sigmoid(y.dot(w) + b) - p
+            return s.mean()
+
+        res = fsolve(f, x0=0)
+        intercepts[j] = res[0]
+
+    ps = sigmoid(y.dot(coeffs) + intercepts)
+    ber = rng.rand(n, d)
+    mask = ber < ps
+
+    return mask
+
+
+
+
 def MNAR_logistic(X, p, random_state):
     """
     Missing not at random mechanism with a logistic self-masking model.
