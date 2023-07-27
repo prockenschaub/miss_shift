@@ -4,19 +4,20 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 NAMES = {
+    'bayes': 'Bayes predictor',
     'bayes_order0': 'Chaining oracles (cond.)',
     'prob_bayes': 'Chaining oracles (prob.)',
     'oracle_impute': 'Oracle impute + MLP',
     'oracle_impute_mask': 'Oracle impute & mask + MLP',
-    'neumice': 'NeuMICE + MLP',
-    'neumiss': 'NeuMiss + MLP',
+    'mean_impute': 'mean impute + MLP',
+    'mean_impute_mask': 'mean impute & mask + MLP',
+    'gbrt': 'Gradient-boosted trees',
     'mice_impute': 'MICE + MLP',
     'mice_impute_mask': 'MICE & mask + MLP',
     'multimice_impute': 'MultiMICE + MLP',
     'multimice_impute_mask': 'MultiMICE & mask + MLP',
-    'mean_impute': 'mean impute + MLP',
-    'mean_impute_mask': 'mean impute & mask + MLP',
-    'gbrt': 'Gradient-boosted trees',
+    'neumiss': 'NeuMiss + MLP',
+    'neumice': 'NeuMISE + MLP'
 }
 
 # Preprocess the scores
@@ -25,7 +26,7 @@ def load_scores(experiment, link, scenario, dir='results'):
     folder = os.path.join(dir, experiment, link, scenario)
     files = os.listdir(folder)
     
-    scores = [pd.read_csv(os.path.join(folder, f)) for f in files]
+    scores = [pd.read_csv(os.path.join(folder, f)) for f in files if '.csv' in f]
     scores = pd.concat(scores, axis=0)
     
     scores['method'] = scores['method'].mask(scores['order0'] == True, scores['method'] + '_order0')
@@ -104,15 +105,21 @@ def find_best_params(scores):
     return scores_no_depth
 
 def diff_to_bayes(scores, var):
+    def calc_diff(df):
+        return df - df["bayes"]
+    
     data_relative = scores.copy().set_index('method')
     data_relative[var] = data_relative.groupby(
-        ['iter', 'n', 'prop_latent'])[var].transform(
-            lambda df: df - df["bayes"])
+        ['iter', 'n', 'prop_latent'], axis=0)[var].transform(calc_diff)
     data_relative = data_relative.reset_index()
-    data_relative['method'] = data_relative['method'].map(NAMES)
-    data_relative = data_relative.query('~method.isna()').copy()
-    data_relative['method'] = pd.Categorical(data_relative['method'], list(NAMES.values()))
     return data_relative
+
+def rename_methods(scores):
+    scores = scores.copy()
+    scores['method'] = scores['method'].map(NAMES)
+    scores = scores.query('~method.isna()').copy()
+    scores['method'] = pd.Categorical(scores['method'], list(NAMES.values()))
+    return scores
 
 
 # Plotting
@@ -130,13 +137,13 @@ def plot_one(data, var, ax=None, type='violin', setup=False, callback=None):
 
     if type == 'violin':
         sns.violinplot(
-            data=data, x=var, saturation=1, y='method', ax=ax, scale="width", palette='bright')
+            data=data, x=var, saturation=1, y='method', ax=ax, scale="width", palette='colorblind')
     elif type == 'box':
         sns.boxplot(
-            data=data, x=var, saturation=1, y='method', ax=ax, palette='bright')
+            data=data, x=var, saturation=1, y='method', ax=ax, palette='colorblind')
     elif type == 'scatter':
         sns.stripplot(
-            data=data, x=var, y='method', hue='method', ax=ax, jitter=.2, alpha=.5, palette='bright', legend=False)
+            data=data, x=var, y='method', hue='method', ax=ax, jitter=.2, alpha=.5, palette='colorblind', legend=False)
 
     for i in range(len(methods)):
         if i % 2:
@@ -168,6 +175,8 @@ def plot_latents(data, var, axes=None, i=0, j=0, n=2e4, type='violin', callback=
             ax.set_axisbelow(True)
             plot_one(to_plot, var, ax, type, callback=callback)
 
+    return fig, axes
+
 
 def plot_all(lst, var, n=2e4, num_experiments=2, type='violin', callback=None):
     fig, axes = plt.subplots(2, 4, figsize=(15, 6), sharex='col', sharey=True)
@@ -183,3 +192,5 @@ def plot_all(lst, var, n=2e4, num_experiments=2, type='violin', callback=None):
         
         if j == 0:
             i += 1
+
+    return fig, axes
