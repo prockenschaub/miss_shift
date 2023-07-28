@@ -205,16 +205,16 @@ def MAR_on_y(X, y, p, random_state):
     # Move the intercept to have the desired amount of missing values
     intercepts = np.zeros((d))
     for j in range(d):
-        w = coeffs[:, j]
+        w = coeffs[j]
 
         def f(b):
-            s = sigmoid(y.dot(w) + b) - p
+            s = sigmoid(y * w + b) - p
             return s.mean()
 
         res = fsolve(f, x0=0)
         intercepts[j] = res[0]
 
-    ps = sigmoid(y.dot(coeffs) + intercepts)
+    ps = sigmoid(y[:, np.newaxis].dot(coeffs[np.newaxis]) + intercepts)
     ber = rng.rand(n, d)
     mask = ber < ps
 
