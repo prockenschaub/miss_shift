@@ -16,7 +16,7 @@ def _validate_masking_params(masking_params):
     if missing_rate > 1 or missing_rate < 0:
         raise ValueError("missing_rate must be >= 0 and <= 1, got %s" % missing_rate)
     
-    if 'MAR' in mdm: 
+    if mdm in ['MAR_logistic', 'MAR_monotone_logistic']: 
         prop_for_masking = masking_params.get('prop_for_masking', -1)
         if (prop_for_masking > 1 or prop_for_masking < 0):
             raise ValueError("prop_for_masking should be between 0 and 1")

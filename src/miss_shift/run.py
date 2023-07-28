@@ -37,8 +37,13 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
             est = BayesPredictor_GSM_nonlinear
         elif mdm in ['MCAR', 'MAR_logistic', 'MAR_monotone_logistic']:
             est = BayesPredictor_MCAR_MAR_nonlinear
+        else: 
+            raise ValueError(f'No conditional Bayes predictor has been implemented for {mdm}.')
     elif method == "prob_bayes":
-        est = ProbabilisticBayesPredictor
+        if mdm in ['MCAR', 'MAR_logistic', 'MAR_monotone_logistic', 'gaussian_sm']:
+            est = ProbabilisticBayesPredictor
+        else: 
+            raise ValueError(f'No probabilistic Bayes predictor has been implemented for {mdm}.')
     elif 'neumiss' in method:
         est = Neumiss
     elif 'neumice' in method:
