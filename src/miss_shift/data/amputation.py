@@ -200,7 +200,7 @@ def MAR_on_y(X, y, p, random_state):
     coeffs = rng.randn(d)
     v = np.array([coeffs[j] ** 2 * var for j in range(d)]) 
     steepness = rng.uniform(low=0.1, high=0.5, size=d)
-    coeffs /= steepness * np.sqrt(v)
+    coeffs /= np.sqrt(v)
 
     # Move the intercept to have the desired amount of missing values
     intercepts = np.zeros((d))
