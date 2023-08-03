@@ -8,6 +8,7 @@ from .estimators.neumiss import Neumiss
 from .estimators.neumice import NeuMICE
 from .estimators.conditional_impute import ImputeMLPPytorch
 from .estimators.oracle_impute import OracleImputeMLPPytorch
+from .estimators.miwae import MIWAE
 from .oracles.conditional import BayesPredictor_GSM_nonlinear, BayesPredictor_MCAR_MAR_nonlinear
 from .oracles.probabilistic import ProbabilisticBayesPredictor
 
@@ -48,6 +49,8 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         est = Neumiss
     elif 'neumice' in method:
         est = NeuMICE
+    elif method == "miwae":
+        est = MIWAE
     elif 'oracle_impute' in method:
         est = OracleImputeMLPPytorch
     elif ('mean_impute' in method) or ('mice_impute' in method)  or ('multimice_impute' in method):
@@ -102,7 +105,7 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
             # For these methods the validatin data for early stopping should be
             # given as standalone data.
             reg = est(**method_params)
-            reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
+            reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es, X_true=X[(n_test + n_val):])
 
         pred_train = reg.predict(Xm_train)
         pred_val = reg.predict(Xm_val)
