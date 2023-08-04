@@ -1,4 +1,5 @@
 import os
+import re
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -59,7 +60,10 @@ def perf_by_params(scores):
     return mean_score
 
 
-def find_best_params(scores): 
+def find_best_params(scores, var): 
+    val = re.sub('train|test(_m|_s)?', 'val', var)
+    ascending = True if "R2" in val else False
+    
     scores_no_na = scores.copy()
     scores_no_na['depth'] = scores_no_na['depth'].fillna(value=0)
     scores_no_na['mlp_depth'] = scores_no_na['mlp_depth'].fillna(value=0)
@@ -77,10 +81,11 @@ def find_best_params(scores):
     mean_score = scores_no_na.groupby(
         ['method', 'n', 'prop_latent', 'depth', 'mlp_depth', 'lr',
             'weight_decay', 'width_factor', 'max_leaf_nodes',
-            'min_samples_leaf', 'max_iter'])['R2_val'].mean()
+            'min_samples_leaf', 'max_iter'])[val].mean()
     mean_score = mean_score.reset_index()
     mean_score = mean_score.sort_values(
-        by=['method', 'n', 'prop_latent', 'R2_val'])
+        by=['method', 'n', 'prop_latent', val],
+        ascending=ascending)
     best_depth = mean_score.groupby(
         ['method', 'n', 'prop_latent']).last()[
             ['depth', 'mlp_depth', 'lr', 'weight_decay', 'width_factor',

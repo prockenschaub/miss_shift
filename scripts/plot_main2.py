@@ -2,7 +2,7 @@ from plot_utils import *
 
 def get_scores(experiment, link, scenario, var):
     scores = load_scores(experiment, link, scenario)
-    scores = find_best_params(scores)
+    scores = find_best_params(scores, var)
     #scores = diff_to_bayes(scores, var)
     #scores = rename_methods(scores)
     return scores
