@@ -175,18 +175,19 @@ class MIWAERegressor(BaseEstimator):
 
         return xm
 
-    def _train_imputer(self, X, X_val):
+    def _train_imputer(self, X, X_val=None):
         X = torch.from_numpy(X).float().to(self.device)
         mask = np.isfinite(X.cpu()).bool().to(self.device)
 
         xhat_0 = torch.clone(X)
         xhat_0[np.isnan(X.cpu()).bool()] = 0
+        
+        if X_val is not None:
+            X_val = torch.from_numpy(X_val).float().to(self.device)
+            mask_val = np.isfinite(X_val.cpu()).bool().to(self.device)
 
-        X_val = torch.from_numpy(X_val).float().to(self.device)
-        mask_val = np.isfinite(X_val.cpu()).bool().to(self.device)
-
-        xhat_0_val = torch.clone(X_val)
-        xhat_0_val[np.isnan(X_val.cpu()).bool()] = 0
+            xhat_0_val = torch.clone(X_val)
+            xhat_0_val[np.isnan(X_val.cpu()).bool()] = 0
 
         n = X.shape[0]  # number of observations
         p = X.shape[1]  # number of features
@@ -195,8 +196,6 @@ class MIWAERegressor(BaseEstimator):
         self._imp.to(self.device)
 
         optimizer = optim.Adam(self._imp.parameters(), lr=self.lr,)
-
-        xhat = torch.clone(xhat_0)  # This will be out imputed data matrix
 
         self.scheduler = ReduceLROnPlateau(
                             optimizer, mode='min', factor=0.2,
