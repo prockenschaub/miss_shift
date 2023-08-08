@@ -3,23 +3,29 @@ import re
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+
 
 NAMES = {
     'bayes': 'Bayes predictor',
-    'bayes_order0': 'Chaining oracles (cond.)',
-    'prob_bayes': 'Chaining oracles (prob.)',
-    'oracle_impute': 'Oracle impute + MLP',
-    'oracle_impute_mask': 'Oracle impute & mask + MLP',
-    'mean_impute': 'mean impute + MLP',
-    'mean_impute_mask': 'mean impute & mask + MLP',
-    'gbrt': 'Gradient-boosted trees',
-    'mice_impute': 'MICE + MLP',
-    'mice_impute_mask': 'MICE & mask + MLP',
-    'multimice_impute': 'MultiMICE + MLP',
-    'multimice_impute_mask': 'MultiMICE & mask + MLP',
-    'neumiss': 'NeuMiss + MLP',
-    'neumice': 'NeuMISE + MLP'
+    'bayes_order0': 'Oracle (cond.)',
+    'prob_bayes': 'Oracle (prob.)',
+    'mice_impute_mask': 'MICE & mask',
+    'multimice_impute': 'MultiMICE',
+    'neumiss': 'NeuMiss',
+    'neumice': 'NeuMISE'
 }
+
+COLORS = {
+    'bayes': '#949494',
+    'bayes_order0': '#fbafe4',
+    'prob_bayes': '#cc78bc',
+    'mice_impute_mask': '#56b4e9',
+    'multimice_impute': '#0173b2',
+    'neumiss': '#de8f05',
+    'neumice': '#d55e00'
+}
+
 
 # Preprocess the scores
 
@@ -119,6 +125,12 @@ def diff_to_bayes(scores, var):
     data_relative = data_relative.reset_index()
     return data_relative
 
+def diff_to(est, ref, var_est, var_ref):
+    ids = ['iter', 'n', 'prop_latent']
+    res = est.merge(ref[ids + [var_ref]], on=ids, suffixes=('', '_ref'))
+    res[var_est] = res[var_est] - res[f'{var_ref}_ref']
+    return res.drop(columns=f'{var_ref}_ref')
+
 def rename_methods(scores):
     scores = scores.copy()
     scores['method'] = scores['method'].map(NAMES)
@@ -129,26 +141,29 @@ def rename_methods(scores):
 
 # Plotting
 
-def plot_one(data, var, ax=None, type='violin', setup=False, callback=None):
+def plot_one(data, var, ax=None, type='violin', setup=False, limit=None):
     if ax is None:
         fig = plt.figure(figsize=(6, 4))   
         ax = fig.add_subplot(1, 1, 1) 
 
-    sns.set_palette('bright')
-
     data = data.copy()
+    data['method'] = pd.Categorical(data['method'], list(NAMES.keys()))
     data.loc[:, 'method'] = data['method'].cat.remove_unused_categories()
-    methods = data['method'].unique()
+    methods = data['method'].cat.categories.to_list()
+
+    sns.set_palette(sns.color_palette([COLORS[m] for m in methods]))
+
+    data['method'] = data['method'].cat.rename_categories(NAMES)
 
     if type == 'violin':
         sns.violinplot(
-            data=data, x=var, saturation=1, y='method', ax=ax, scale="width", palette='colorblind')
+            data=data, x=var, saturation=1, y='method', ax=ax, scale="width", cut=0, linewidth=1)
     elif type == 'box':
         sns.boxplot(
-            data=data, x=var, saturation=1, y='method', ax=ax, palette='colorblind')
+            data=data, x=var, saturation=1, y='method', ax=ax)
     elif type == 'scatter':
         sns.stripplot(
-            data=data, x=var, y='method', hue='method', ax=ax, jitter=.2, alpha=.5, palette='colorblind', legend=False)
+            data=data, x=var, y='method', hue='method', ax=ax, jitter=.2, alpha=.5, legend=False)
 
     for i in range(len(methods)):
         if i % 2:
@@ -163,10 +178,23 @@ def plot_one(data, var, ax=None, type='violin', setup=False, callback=None):
     ax.spines['top'].set_edgecolor('.6')
     ax.set_ylim(len(methods) - .5, -.5) 
 
-    if callback:
-        callback(ax)
+    if limit is not None:
+        default_max = 0.6
 
-def plot_latents(data, var, axes=None, i=0, j=0, n=2e4, type='violin', callback=None):
+        if isinstance(limit, tuple):
+            default_max = limit[1]
+            limit = limit[0]
+
+        if callable(limit):
+            limit(ax)
+        elif isinstance(limit, float):
+            ax.set_xlim(right=limit)
+        elif limit == 'clip' and data[var].max() > default_max:
+            ax.set_xlim(left=-0.03, right=default_max)
+
+
+
+def plot_latents(data, var, fig=None, axes=None, i=0, j=0, n=2e4, type='violin', limit=None):
     if axes is None:
         fig, axes = plt.subplots(1, 2, figsize=(15, 6), sharex='col', sharey=True)
     
@@ -178,24 +206,33 @@ def plot_latents(data, var, axes=None, i=0, j=0, n=2e4, type='violin', callback=
                 ax = axes[i, 2*j+k]
             ax.grid(axis='x')
             ax.set_axisbelow(True)
-            plot_one(to_plot, var, ax, type, callback=callback)
+            plot_one(to_plot, var, ax, type, limit=limit)
 
     return fig, axes
 
 
-def plot_all(lst, var, n=2e4, num_experiments=2, type='violin', callback=None):
-    fig, axes = plt.subplots(2, 4, figsize=(15, 6), sharex='col', sharey=True)
+def plot_all(lst, var, n=2e4, num_comparisons=2, num_scenarios=2, type='violin', limit=None, n_ticks=3, **kwargs):
+    fig, axes = plt.subplots(num_comparisons, 2 * num_scenarios, sharex='col', sharey=True, **kwargs)
     
     i, j = 0, 0
     for data in lst:
-        plot_latents(data, var, axes, i, j, n, type, callback)
+        plot_latents(data, var, fig, axes, i, j, n, type, limit)
 
-        if j == num_experiments - 1:
-            j = 0
+        if i == num_comparisons - 1:
+            i = 0
         else:
-            j += 1
-        
-        if j == 0:
             i += 1
+        
+        if i == 0:
+            j += 1
+
+    for j in range(num_scenarios * 2):
+        if num_comparisons > 1:
+            ax = axes[num_comparisons-1, j]
+        else: 
+            ax = axes[j]
+        _, right_lim = ax.set_xlim()
+        ax.set_xlim(left=-right_lim*0.05)
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(n_ticks))
 
     return fig, axes
