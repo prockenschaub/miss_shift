@@ -116,7 +116,7 @@ def launch(args):
 
         results = Parallel(n_jobs=args.n_jobs, verbose=11)(
              delayed(run_one)(data_desc, method, method_params, it, args.n_train,
-                             args.n_test, args.n_val, miss_orig['mdm'], args.tmp_dir)
+                             args.n_test, args.n_val, miss_orig['mdm'], args.type_data, args.tmp_dir)
              for data_desc, method, method_params, it in runs
          )
         
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_train', help='list of train set size(s)', nargs='+', type=int, default=20000)
     parser.add_argument('--n_val', help='size of the validation set', type=int, default=10000)
     parser.add_argument('--n_test', help='size of the test set', type=int, default=10000)
-
+    parser.add_argument('--type_data', help='size of the test set', type=str, default="simulated")
     # Define computational resources, paths, etc.
     parser.add_argument('--n_jobs', help='number of jobs to run in parallel', type=int, default=1)
     parser.add_argument('--out_dir', help='directory where to store the results', type=str, default='results')

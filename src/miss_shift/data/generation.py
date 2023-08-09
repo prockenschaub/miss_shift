@@ -2,6 +2,7 @@
 Data generation.
 """
 import numpy as np
+import pandas as pd
 from sklearn.utils import check_random_state
 from scipy.stats import norm
 from math import sqrt, log, pi
@@ -95,84 +96,92 @@ def gen_params(n_features, prop_latent, masking_params, snr,
 
     return (n_features, mean, cov, beta, masking_params, snr, link, curvature)
 
-
-
-def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
-
+def gen_y(current_X, snr, link, curvature, beta, n_samples, current_size,seed_data=None):
     rng_data = check_random_state(seed_data)
+
+    dot_product = current_X.dot(beta[1:]) + beta[0]
+
+    if link == 'linear':
+        current_y = dot_product
+    elif link == 'square':
+        current_y = curvature*(dot_product-1)**2
+    elif link == 'cube':
+        current_y = beta[0] + curvature*dot_product**3
+        linear_coef = pow(3*sqrt(3)/2*sqrt(curvature)*4, 2/3)
+        current_y -= linear_coef*dot_product
+    elif link == 'stairs':
+        current_y = dot_product - 1
+        for a, b in zip([2, -4, 2], [-0.8, -1, -1.2]):
+            tmp = sqrt(pi/8)*curvature*(dot_product + b)
+            current_y += a*norm.cdf(tmp)
+    elif link == 'discontinuous_linear':
+        current_y = dot_product + (dot_product > 1)*3
+
+    var_y = np.mean((current_y - np.mean(current_y))**2)
+    sigma2_noise = var_y/snr
+
+    noise = rng_data.normal(
+        loc=0, scale=sqrt(sigma2_noise), size=n_samples-current_size)
+    current_y += noise
+    return current_y
+
+def gen_mask(current_X,mean, cov, masking_params, seed_ampute=None):
     rng_ampute = check_random_state(seed_ampute)
 
-    (n_features, mean, cov, beta, masking_params, snr, link, curvature) = data_params
+    masking = masking_params['mdm']
+    missing_rate = masking_params['missing_rate']
 
+    if masking == 'MCAR':
+        current_M = MCAR(current_X, missing_rate, rng_ampute)
+    elif masking == 'MAR_logistic':
+        prop_for_masking = masking_params['prop_for_masking']
+        sample_vars = masking_params.get('sample_vars', False)
+        current_M = MAR_logistic(current_X, missing_rate, prop_for_masking,
+                                rng_ampute, sample_vars=sample_vars)
+    elif masking == 'MAR_monotone_logistic':
+        prop_for_masking = masking_params['prop_for_masking']
+        sample_vars = masking_params.get('sample_vars', False)
+        current_M = MAR_monotone_logistic(current_X, missing_rate, prop_for_masking,
+                                rng_ampute, sample_vars=sample_vars)
+    elif masking == 'MNAR_logistic':
+        current_M = MNAR_logistic(current_X, missing_rate, rng_ampute)
+    elif masking == 'MNAR_logistic_uniform':
+        current_M = MNAR_logistic_uniform(current_X, missing_rate,
+                                        prop_for_masking, rng_ampute)
+    elif masking == 'gaussian_sm':
+        sm_type = masking_params['sm_type']
+        sm_param = masking_params['sm_param']
+        perm = masking_params.get('perm', False)
+        current_M = gaussian_sm(current_X, sm_type, sm_param, mean, cov, rng_ampute)
+        if perm:
+            current_M = current_M[:, perm]
+
+    current_Xm = np.copy(current_X)
+    np.putmask(current_Xm, current_M, np.nan)
+    return current_Xm
+
+def gen_data(n_sizes, data_params, type_data,seed_data=None, seed_ampute=None):
+
+    rng_data = check_random_state(seed_data)
+
+    (n_features, mean, cov, beta, masking_params, snr, link, curvature) = data_params
     X = np.empty((0, n_features))
     Xm = np.empty((0, n_features))
     y = np.empty((0, ))
+    
     current_size = 0
 
     for _, n_samples in enumerate(n_sizes):
-
-        current_X = rng_data.multivariate_normal(
-                mean=mean, cov=cov,
-                size=n_samples-current_size,
-                check_valid='raise')
-
-        dot_product = current_X.dot(beta[1:]) + beta[0]
-
-        if link == 'linear':
-            current_y = dot_product
-        elif link == 'square':
-            current_y = curvature*(dot_product-1)**2
-        elif link == 'cube':
-            current_y = beta[0] + curvature*dot_product**3
-            linear_coef = pow(3*sqrt(3)/2*sqrt(curvature)*4, 2/3)
-            current_y -= linear_coef*dot_product
-        elif link == 'stairs':
-            current_y = dot_product - 1
-            for a, b in zip([2, -4, 2], [-0.8, -1, -1.2]):
-                tmp = sqrt(pi/8)*curvature*(dot_product + b)
-                current_y += a*norm.cdf(tmp)
-        elif link == 'discontinuous_linear':
-            current_y = dot_product + (dot_product > 1)*3
-
-        var_y = np.mean((current_y - np.mean(current_y))**2)
-        sigma2_noise = var_y/snr
-
-        noise = rng_data.normal(
-            loc=0, scale=sqrt(sigma2_noise), size=n_samples-current_size)
-        current_y += noise
-
-        masking = masking_params['mdm']
-        missing_rate = masking_params['missing_rate']
-
-        if masking == 'MCAR':
-            current_M = MCAR(current_X, missing_rate, rng_ampute)
-        elif masking == 'MAR_logistic':
-            prop_for_masking = masking_params['prop_for_masking']
-            sample_vars = masking_params.get('sample_vars', False)
-            current_M = MAR_logistic(current_X, missing_rate, prop_for_masking,
-                                     rng_ampute, sample_vars=sample_vars)
-        elif masking == 'MAR_monotone_logistic':
-            prop_for_masking = masking_params['prop_for_masking']
-            sample_vars = masking_params.get('sample_vars', False)
-            current_M = MAR_monotone_logistic(current_X, missing_rate, prop_for_masking,
-                                     rng_ampute, sample_vars=sample_vars)
-        elif masking == 'MAR_on_y':
-            current_M = MAR_on_y(current_X, current_y, missing_rate, rng_ampute)
-        elif masking == 'MNAR_logistic':
-            current_M = MNAR_logistic(current_X, missing_rate, rng_ampute)
-        elif masking == 'MNAR_logistic_uniform':
-            current_M = MNAR_logistic_uniform(current_X, missing_rate,
-                                              prop_for_masking, rng_ampute)
-        elif masking == 'gaussian_sm':
-            sm_type = masking_params['sm_type']
-            sm_param = masking_params['sm_param']
-            perm = masking_params.get('perm', False)
-            current_M = gaussian_sm(current_X, sm_type, sm_param, mean, cov, rng_ampute)
-            if perm:
-                current_M = current_M[:, perm]
-
-        current_Xm = np.copy(current_X)
-        np.putmask(current_Xm, current_M, np.nan)
+        if type_data=='simulated':
+            current_X = rng_data.multivariate_normal(
+                    mean=mean, cov=cov,
+                    size=n_samples-current_size,
+                    check_valid='raise')
+        else:
+            real_data=pd.read_csv('/home/marta/Desktop/Miss_shift/miss_shift/src/miss_shift/data/LIBDD_den_final_10000')
+            current_X = real_data.values.astype(float)
+        current_y=gen_y(current_X, snr, link, curvature, beta, n_samples, current_size,seed_data)
+        current_Xm=gen_mask(current_X,mean, cov, masking_params, seed_ampute)
 
         X = np.vstack((X, current_X))
         Xm = np.vstack((Xm, current_Xm))
@@ -181,3 +190,5 @@ def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
         current_size = n_samples
 
         yield X, Xm, y
+    
+    
