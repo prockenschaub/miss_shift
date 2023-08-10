@@ -28,7 +28,7 @@ class BayesPredictor_GSM_nonlinear(BaseEstimator):
 
     def predict(self, X):
 
-        _, mu, cov, beta, masking_params, _, link, curvature = self.data_params
+        _, mu, cov, beta, masking_params, _, link, _, curvature = self.data_params
 
         sm_params = masking_params['sm_param']
         tsigma2 = sm_params['sigma2_tilde']
@@ -105,7 +105,7 @@ class BayesPredictor_MCAR_MAR_nonlinear(BaseEstimator):
         return self
 
     def predict(self, X):
-        (_, mu, sigma, beta, _, _, link, curvature) = self.data_params
+        (_, mu, sigma, beta, _, _, link, _, curvature) = self.data_params
 
         pred = []
         for x in X:

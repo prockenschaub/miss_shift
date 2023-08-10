@@ -1,11 +1,18 @@
 name: 'less_miss'
 
 data:
-  n_features: 50
-  prop_latent: [0.3, 0.7]
-  snr: 10
-  link: 'stairs'
-
+  simulated:
+    n_features: 50
+    prop_latent: [0.3, 0.7]
+    snr: 10
+    link: 'stairs'
+    data_path: 'None'
+  libdd:
+    n_features: 50
+    prop_latent: [0.3, 0.7]
+    snr: 10
+    link: 'stairs'
+    data_path: "/home/marta/Desktop/Miss_shift/miss_shift/src/miss_shift/data/LIBDD_den_final_10000"
 missingness:
   mcar: 
     orig: 

@@ -24,7 +24,7 @@ class ProbabilisticBayesPredictor(BaseEstimator):
         self.n_draws = n_draws
 
     def oracle_impute(self, X):
-        (_, mu, Sigma, _, masking_params, _, _, _) = self.data_params
+        (_, mu, Sigma, _, masking_params, _, _, _, _) = self.data_params
         
         mdm = masking_params['mdm']
 
@@ -71,7 +71,7 @@ class ProbabilisticBayesPredictor(BaseEstimator):
         return self
 
     def predict_f_star(self, X):
-        (_, _, _, beta, _, _, link, curvature) = self.data_params
+        (_, _, _, beta, _, _, link, _, curvature) = self.data_params
         
         pred = []
         for x in X:

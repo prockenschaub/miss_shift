@@ -44,7 +44,7 @@ class OracleImputeMLP(BaseEstimator):
         self._reg = MLP_reg(is_mask=add_mask, **self.mlp_params)
 
     def oracle_impute(self, X):
-        (_, mu, Sigma, _, masking_params, _, _, _) = self.data_params
+        (_, mu, Sigma, _, masking_params, _, _, _, _) = self.data_params
         
         T = X.copy()
         for t in T:

@@ -30,7 +30,7 @@ def _validate_masking_params(masking_params):
 
 
 def gen_params(n_features, prop_latent, masking_params, snr, 
-               link='linear', curvature=1, seed_data=None, seed_ampute=None):
+               link='linear',data_path=None, curvature=1, seed_data=None, seed_ampute=None):
     _validate_masking_params(masking_params)
     
     if prop_latent > 1 or prop_latent < 0:
@@ -94,7 +94,7 @@ def gen_params(n_features, prop_latent, masking_params, snr,
     var = beta[1:].dot(cov).dot(beta[1:])
     beta[1:] *= 1/sqrt(var)
 
-    return (n_features, mean, cov, beta, masking_params, snr, link, curvature)
+    return (n_features, mean, cov, beta, masking_params, snr, link, data_path, curvature)
 
 def gen_y(current_X, snr, link, curvature, beta, n_samples, current_size,seed_data=None):
     rng_data = check_random_state(seed_data)
@@ -160,11 +160,11 @@ def gen_mask(current_X,mean, cov, masking_params, seed_ampute=None):
     np.putmask(current_Xm, current_M, np.nan)
     return current_Xm
 
-def gen_data(n_sizes, data_params, type_data,seed_data=None, seed_ampute=None):
+def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
 
     rng_data = check_random_state(seed_data)
 
-    (n_features, mean, cov, beta, masking_params, snr, link, curvature) = data_params
+    (n_features, mean, cov, beta, masking_params, snr, link, data_path, curvature) = data_params
     X = np.empty((0, n_features))
     Xm = np.empty((0, n_features))
     y = np.empty((0, ))
@@ -172,14 +172,17 @@ def gen_data(n_sizes, data_params, type_data,seed_data=None, seed_ampute=None):
     current_size = 0
 
     for _, n_samples in enumerate(n_sizes):
-        if type_data=='simulated':
+        if data_path=='None':
             current_X = rng_data.multivariate_normal(
                     mean=mean, cov=cov,
                     size=n_samples-current_size,
                     check_valid='raise')
         else:
-            real_data=pd.read_csv('/home/marta/Desktop/Miss_shift/miss_shift/src/miss_shift/data/LIBDD_den_final_10000')
+            real_data=pd.read_csv(data_path)
             current_X = real_data.values.astype(float)
+            
+            if n_samples > current_X.shape[0]:
+                raise ValueError
         current_y=gen_y(current_X, snr, link, curvature, beta, n_samples, current_size,seed_data)
         current_Xm=gen_mask(current_X,mean, cov, masking_params, seed_ampute)
 

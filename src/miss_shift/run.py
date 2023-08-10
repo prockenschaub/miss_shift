@@ -15,7 +15,7 @@ from .oracles.probabilistic import ProbabilisticBayesPredictor
 
 
 
-def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, type_data, tmp_dir='tmp'):
+def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, tmp_dir='tmp'):
 
     if not isinstance(n_train, list):
         n_train = [n_train]
@@ -26,13 +26,13 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, t
     orig_desc['masking_params'] = orig_desc.pop('miss_orig')
     orig_desc.pop('miss_shift')
     orig_params = gen_params(**orig_desc, seed_data=it, seed_ampute=orig_desc['masking_params'].get('seed', it))
-    gen_orig = gen_data(n_tot, orig_params, type_data, seed_data=it, seed_ampute=orig_desc['masking_params'].get('seed', it))
+    gen_orig = gen_data(n_tot, orig_params, seed_data=it, seed_ampute=orig_desc['masking_params'].get('seed', it))
 
     shift_desc = deepcopy(data_desc)
     shift_desc['masking_params'] = shift_desc.pop('miss_shift')
     shift_desc.pop('miss_orig')
     shift_params = gen_params(**shift_desc, seed_data=it, seed_ampute=shift_desc['masking_params'].get('seed', it*42))   # Change the ampute seed for the shift
-    gen_shift = gen_data(n_tot, shift_params, type_data, seed_data=it, seed_ampute=shift_desc['masking_params'].get('seed', it*42)) # Change the ampute seed for the shift
+    gen_shift = gen_data(n_tot, shift_params, seed_data=it, seed_ampute=shift_desc['masking_params'].get('seed', it*42)) # Change the ampute seed for the shift
 
     # Get method name and initialize estimator
     if method == 'bayes':
