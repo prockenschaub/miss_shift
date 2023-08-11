@@ -2,7 +2,7 @@
 
 import torch
 from torch import Tensor, nn
-from torch.nn import Linear, Parameter, Sequential
+from torch.nn import Linear, Parameter, Sequential, BatchNorm1d
 
 
 class Mask(nn.Module):
@@ -48,18 +48,19 @@ class NeuMICEBlock(nn.Module):
         self.depth = depth
         self.dtype = dtype
         self.mu = Parameter(torch.empty(n_features, dtype=dtype))
+        self.init = Linear(n_features, n_features, bias=True, dtype=dtype)
         self.linear = Linear(n_features, n_features, bias=True, dtype=dtype)
+        self.norm = BatchNorm1d(n_features, dtype=dtype)
         self.reset_parameters()
 
     def forward(self, x: Tensor) -> Tensor:
         x = x.type(self.dtype)  # Cast tensor to appropriate dtype
         mask = Mask(x)  # Initialize mask non-linearity
         x = torch.nan_to_num(x)  # Fill missing values with 0
-        s0 = x - self.mu
-        h = x - mask(self.mu, invert=True)  # Subtract masked parameter mu
-        skip = SkipConnection(h)  # Initialize skip connection with this value
-        
-        layer = [self.linear, mask, skip]  # One Neumann iteration
+        s0 = self.init(x)
+        skip = SkipConnection(x)  # Initialize skip connection with this value
+
+        layer = [self.norm, self.linear, mask, skip]  # One Neumann iteration
         layers = Sequential(*(layer*self.depth))  # Neumann block
 
         return layers(s0)
