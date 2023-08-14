@@ -10,8 +10,9 @@ ns_exp = "more_miss"
 s_exp = "less_miss"
 link = "stairs"
 var = 'mse_test'
-n=1e5
+n = 1e5
 
+save = False
 
 # MAR and MNAR results for the main text (Figure 1) ----------------------
 
@@ -67,7 +68,8 @@ arrowprops=dict(arrowstyle="-"))
 ax[0, 2].annotate('', xy=(0, 1.12), xycoords='axes fraction', xytext=(2.2, 1.12),
 arrowprops=dict(arrowstyle="-"))
 
-fig.savefig('results/figures/shift_performance_mar_mnar.png', dpi=150, bbox_inches = "tight")
+if save:
+    fig.savefig('results/figures/shift_performance_mar_mnar.png', dpi=150, bbox_inches = "tight")
 
 
 
@@ -78,7 +80,7 @@ to_plot = []
 scenario = "monotone_mar"
 
 s_scores = get_scores(s_exp, link, scenario, n, f'{var}')
-s_diff = diff_to(s_scores, s_scores[s_scores.method == 'bayes'], f'{var}_s', f'{var}_m')
+s_diff = diff_to(s_scores, s_scores[s_scores.method == 'bayes'], f'{var}', f'{var}')
 s_diff = s_diff.loc[~s_diff.method.isin(['bayes', 'bayes_order0', 'prob_bayes']), :]
 
 to_plot += [
@@ -89,7 +91,7 @@ to_plot += [
 scenario = "gaussian_sm"
 
 s_scores = get_scores(s_exp, link, scenario, n, f'{var}')
-s_diff = diff_to(s_scores, s_scores[s_scores.method == 'bayes'], f'{var}_s', f'{var}_m')
+s_diff = diff_to(s_scores, s_scores[s_scores.method == 'bayes'], f'{var}', f'{var}')
 s_diff = s_diff.loc[~s_diff.method.isin(['bayes', 'bayes_order0', 'prob_bayes']), :]
 
 to_plot += [
@@ -118,4 +120,39 @@ arrowprops=dict(arrowstyle="-"))
 ax[2].annotate('', xy=(0, 1.2), xycoords='axes fraction', xytext=(2.2, 1.2),
 arrowprops=dict(arrowstyle="-"))
 
-fig.savefig('results/figures/complete_performance_mar_mnar.png', dpi=150, bbox_inches = "tight")
+
+if save:
+    fig.savefig('results/figures/complete_performance_mar_mnar.png', dpi=150, bbox_inches = "tight")
+
+
+
+# MCAR results for the appendix ----------------------------------
+
+to_plot = []
+
+scenario = "mcar"
+
+ns_scores = get_scores(ns_exp, link, scenario, n, f'{var}_m')
+ns_diff = diff_to(ns_scores, ns_scores[ns_scores.method == 'bayes'], f'{var}_m', f'{var}_m')
+
+s_scores = get_scores(s_exp, link, scenario, n, f'{var}_s')
+s_diff = diff_to(s_scores, ns_scores[ns_scores.method == 'bayes'], f'{var}_s', f'{var}_m')
+
+to_plot += [
+    ns_diff.rename(columns={f'{var}_m': 'result'}),
+    s_diff. rename(columns={f'{var}_s': 'result'})
+]
+
+fig, ax = plot_all(to_plot, 'result', n, num_scenarios=1, type='violin', limit='clip', figsize=(5.5, 4.5))
+fig.supxlabel('Increase in MSE compared to Bayes predictor')
+fig.text(0.50, 0.94, 'MCAR', ha='center', fontweight='bold')
+ax[0, 0].set_ylabel('No shift (25%)', labelpad=20., fontweight='bold')
+ax[1, 0].set_ylabel('Shift (50% to 25%)', labelpad=20., fontweight='bold')
+
+ax[0, 0].set_xlabel('High correlation')
+ax[0, 0].xaxis.set_label_position('top') 
+ax[0, 1].set_xlabel('Low correlation')
+ax[0, 1].xaxis.set_label_position('top') 
+
+ax[0, 0].annotate('', xy=(0, 1.12), xycoords='axes fraction', xytext=(2.2, 1.12),
+arrowprops=dict(arrowstyle="-"))
