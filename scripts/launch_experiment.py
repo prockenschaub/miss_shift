@@ -32,7 +32,8 @@ fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m
           'verbose', 'mlp_depth', 'init_type', 'max_iter', 'order0',
           'n_trials_no_change', 'validation_fraction', 'add_mask', 'imputation_type', 
           'n_features', 'prop_latent', 'snr', 'miss_orig', 'miss_shift',
-          'link', 'curvature', 'width_factor', 'max_leaf_nodes', 'min_samples_leaf']
+          'link', 'curvature', 'width_factor', 'max_leaf_nodes', 'min_samples_leaf',
+          'use_y_for_impute']
 
 ResultItem = namedtuple('ResultItem', fields)
 ResultItem.__new__.__defaults__ = (np.nan, )*len(ResultItem._fields)

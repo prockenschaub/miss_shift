@@ -32,6 +32,13 @@ missingness:
       mdm: 'MAR_monotone_logistic'
       missing_rate: 0.25
       prop_for_masking: 0.3
+  mar_y:
+    orig: 
+      mdm: 'MAR_on_y'
+      missing_rate: 0.5
+    shift: 
+      mdm: 'MAR_on_y'
+      missing_rate: 0.25
   gaussian_sm:
     orig: 
       mdm: 'gaussian_sm'
@@ -98,3 +105,30 @@ estimators:
     weight_decay: [1.e-5, 1.e-4, 1.e-3]
     lr: [1.e-2, 5.e-3, 1.e-3]
     depth: [20] 
+  mice_impute_using_y:
+    imputation_type: 'MICE'
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    init_type: 'uniform'
+    add_mask: [False]
+    use_y_for_impute: True
+    mlp_depth: [1, 2, 5]
+    width_factor: [1, 5, 10]
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
+  multimice_impute_using_y:
+    imputation_type: 'MultiMICE'
+    n_draws: 5
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    init_type: 'uniform'
+    add_mask: [False]
+    use_y_for_impute: True
+    mlp_depth: [1, 2, 5]
+    width_factor: [1, 5, 10]
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]

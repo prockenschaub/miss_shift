@@ -23,12 +23,13 @@ class ImputeMLPPytorch(BaseEstimator):
         The dictionary containing the parameters for the MLP.
     """
 
-    def __init__(self, add_mask, imputation_type, n_draws=5, verbose=False, **mlp_params):
+    def __init__(self, add_mask, imputation_type, n_draws=5, use_y_for_impute=False, verbose=False, **mlp_params):
 
         self.add_mask = add_mask
         self.imputation_type = imputation_type
         self.mlp_params = mlp_params
         self.n_draws = n_draws
+        self.use_y_for_impute = use_y_for_impute
 
         if self.imputation_type == 'mean':
             self._imp = SimpleImputer(missing_values=np.nan, strategy='mean')
@@ -60,14 +61,32 @@ class ImputeMLPPytorch(BaseEstimator):
             return self._imp.transform(X)
 
     def fit(self, X, y, X_val=None, y_val=None):
+        if self.use_y_for_impute:
+            # Add the outcome to the dataset to use it during imputation
+            X = np.c_[X, y]
+            X_val = np.c_[X_val, y_val]
+        
         self._imp.fit(X)
         T = self.impute(X)
         T_val = self.impute(X_val)
 
+        if self.use_y_for_impute:
+            # Remove the outcome from all datasets to fit the regressor
+            X = X[..., :-1]
+            X_val = X_val[..., :-1]
+            T = T[..., :-1]
+            T_val = T_val[..., :-1]
+
         if self.add_mask:
             T = self.concat_mask(X, T)
             T_val = self.concat_mask(X_val, T_val)
+        
         self._reg.fit(T, y, X_val=T_val, y_val=y_val)
+
+        if self.use_y_for_impute:
+            # finally, refit the imputation for prediction at test time
+            self._imp.fit(X) 
+
         return self
 
     def predict(self, X):
