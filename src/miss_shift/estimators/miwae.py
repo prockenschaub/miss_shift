@@ -194,7 +194,7 @@ class MIWAERegressor(BaseEstimator):
 
         self.scheduler = ReduceLROnPlateau(
                             optimizer, mode='min', factor=0.2,
-                            patience=10, threshold=1e-4)
+                            patience=5, threshold=1e-4)
 
         if self.early_stop and X_val is not None:
             early_stopping = EarlyStopping(verbose=self.verbose)
