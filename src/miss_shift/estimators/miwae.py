@@ -46,8 +46,8 @@ class MIWAE(nn.Module):
             torch.nn.Linear(width, width),
             torch.nn.ReLU(),
             torch.nn.Linear(
-                width, 3 * n_inputs
-            ),  # the decoder will output both the mean, the scale, and the number of degrees of freedoms (hence the 3*p)
+                width, 2 * n_inputs
+            ),  # the decoder will output both the mean and the diagonal covariance
         )
 
         self.encoder.apply(weights_init)
@@ -73,17 +73,13 @@ class MIWAE(nn.Module):
         all_scales_obs_model = (
             torch.nn.Softplus()(out_decoder[..., self.n_inputs : (2 * self.n_inputs)]) + 0.001
         )
-        all_degfreedom_obs_model = (
-            torch.nn.Softplus()(out_decoder[..., (2 * self.n_inputs) : (3 * self.n_inputs)]) + 3
-        )
 
         data_flat = torch.Tensor.repeat(iota_x, [L, 1]).reshape([-1, 1])
         tiledmask = torch.Tensor.repeat(mask, [L, 1])
 
-        all_log_pxgivenz_flat = torch.distributions.StudentT(
+        all_log_pxgivenz_flat = td.Normal(
             loc=all_means_obs_model.reshape([-1, 1]),
-            scale=all_scales_obs_model.reshape([-1, 1]),
-            df=all_degfreedom_obs_model.reshape([-1, 1]),
+            scale=all_scales_obs_model.reshape([-1, 1])
         ).log_prob(data_flat)
         all_log_pxgivenz = all_log_pxgivenz_flat.reshape([-1, self.n_inputs])
 
@@ -94,10 +90,9 @@ class MIWAE(nn.Module):
         logq = q_zgivenxobs.log_prob(zgivenx)
 
         xgivenz = td.Independent(
-            td.StudentT(
+            td.Normal(
                 loc=all_means_obs_model,
-                scale=all_scales_obs_model,
-                df=all_degfreedom_obs_model,
+                scale=all_scales_obs_model
             ),
             1,
         )
