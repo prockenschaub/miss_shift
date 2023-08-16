@@ -262,7 +262,7 @@ class MIWAERegressor(BaseEstimator):
         for _ in range(self.n_draws):
             with torch.no_grad():
                 xhat = torch.clone(xhat_0)
-                xhat[~mask] = self._miwae_impute(iota_x=xhat_0, mask=mask, L=10,)[~mask]
+                xhat[~mask] = self._miwae_impute(iota_x=xhat_0, mask=mask, L=self.n_draws*10,)[~mask]
                 T.append(xhat.numpy())
         return np.stack(T)
 
