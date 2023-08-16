@@ -94,15 +94,18 @@ estimators:
     weight_decay: [1.e-5, 1.e-4, 1.e-3]
     lr: [1.e-2, 5.e-3, 1.e-3]
   miwae:
-    n_epochs: 25
-    mlp_depth: 5
-    width_factor: 10
-    weight_decay: 1.e-3
-    lr: 1.e-3
-    latent_size: [50]
-    encoder_width: [50]
-    K: 20
     n_draws: 5
+    latent_size: [25, 75]
+    encoder_width: 128
+    K: 20
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    mlp_depth: [1, 2, 5]
+    width_factor: [1, 5, 10]
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
     verbose: True
   neumiss:
     n_epochs: 1000
