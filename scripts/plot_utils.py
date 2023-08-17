@@ -212,7 +212,7 @@ def plot_latents(data, var, fig=None, axes=None, i=0, j=0, n=2e4, type='violin',
 
 
 def plot_all(lst, var, n=2e4, num_comparisons=2, num_scenarios=2, type='violin', limit=None, n_ticks=3, **kwargs):
-    fig, axes = plt.subplots(num_comparisons, 2 * num_scenarios, sharex='col', sharey=True, **kwargs)
+    fig, axes = plt.subplots(num_comparisons, 2 * num_scenarios, sharex=kwargs.pop('sharex', 'col'), sharey=kwargs.pop('sharey', True), **kwargs)
     
     i, j = 0, 0
     for data in lst:
