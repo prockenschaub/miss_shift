@@ -10,8 +10,10 @@ NAMES = {
     'bayes': 'Bayes predictor',
     'bayes_order0': 'Oracle (cond.)',
     'prob_bayes': 'Oracle (prob.)',
-    'mice_impute_mask': 'MICE & mask',
+    'mice_impute_mask': 'MICE',
+    'mice_impute_using_y': 'MICE+Y',
     'multimice_impute': 'MultiMICE',
+    'multimice_impute_using_y': 'MultiMICE+Y',
     'neumiss': 'NeuMiss',
     'neumice': 'NeuMISE'
 }
@@ -21,7 +23,9 @@ COLORS = {
     'bayes_order0': '#fbafe4',
     'prob_bayes': '#cc78bc',
     'mice_impute_mask': '#56b4e9',
+    'mice_impute_using_y': '#306582',
     'multimice_impute': '#0173b2',
+    'multimice_impute_using_y': '#013f61',
     'neumiss': '#de8f05',
     'neumice': '#d55e00'
 }
