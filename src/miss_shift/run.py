@@ -1,4 +1,5 @@
 from copy import deepcopy
+import os
 
 import torch
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -13,7 +14,7 @@ from .oracles.conditional import BayesPredictor_GSM_nonlinear, BayesPredictor_MC
 from .oracles.probabilistic import ProbabilisticBayesPredictor
 
 
-def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
+def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, tmp_dir='tmp'):
 
     if not isinstance(n_train, list):
         n_train = [n_train]
@@ -101,11 +102,20 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         elif method in ['oracle_impute']:
             reg = est(orig_params, **method_params)
             reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
+        elif method == 'miwae':
+            save_dir = os.path.join(tmp_dir, 'miwae', f'n={n}', f'iter={it}')
+            os.makedirs(save_dir, exist_ok=True)
+
+            reg = est(**method_params, save_dir=save_dir)
+            reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
+
+            if method_params['mode'] == 'imputer-only':
+                continue
         else:
             # For these methods the validatin data for early stopping should be
             # given as standalone data.
             reg = est(**method_params)
-            reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es, X_true=X[(n_test + n_val):])
+            reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
 
         pred_train = reg.predict(Xm_train)
         pred_val = reg.predict(Xm_val)

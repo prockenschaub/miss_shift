@@ -10,123 +10,27 @@ from ..networks.miwae import MIWAE
 from ..networks.mlp import MLP_reg
 
 class MIWAEMLP(BaseEstimator):
-        self.latent_size = latent_size
-
-        self.p_z = td.Independent(
-            td.Normal(
-                loc=torch.zeros(self.latent_size),
-                scale=torch.ones(self.latent_size),
-            ),
-            1,
-        )
-
-        self.encoder = nn.Sequential(
-            torch.nn.Linear(n_inputs, width),
-            torch.nn.ReLU(),
-            torch.nn.Linear(width, width),
-            torch.nn.ReLU(),
-            torch.nn.Linear(
-                width, 2 * latent_size
-            ),  # the encoder will output both the mean and the diagonal covariance
-        )
-
-        self.decoder = nn.Sequential(
-            torch.nn.Linear(latent_size, width),
-            torch.nn.ReLU(),
-            torch.nn.Linear(width, width),
-            torch.nn.ReLU(),
-            torch.nn.Linear(
-                width, 2 * n_inputs
-            ),  # the decoder will output both the mean and the diagonal covariance
-        )
-
-        self.encoder.apply(weights_init)
-        self.decoder.apply(weights_init)
-
-    def forward(self, iota_x, mask, L):
-        out_encoder = self.encoder(iota_x)
-        q_zgivenxobs = td.Independent(
-            td.Normal(
-                loc=out_encoder[..., : self.latent_size],
-                scale=torch.nn.Softplus()(
-                    out_encoder[..., self.latent_size : (2 * self.latent_size)]
-                ),
-            ),
-            1,
-        )
-
-        zgivenx = q_zgivenxobs.rsample([L])
-        zgivenx_flat = zgivenx.reshape([-1, self.latent_size])
-
-        out_decoder = self.decoder(zgivenx_flat)
-        all_means_obs_model = out_decoder[..., :self.n_inputs]
-        all_scales_obs_model = (
-            torch.nn.Softplus()(out_decoder[..., self.n_inputs : (2 * self.n_inputs)]) + 0.001
-        )
-
-        data_flat = torch.Tensor.repeat(iota_x, [L, 1]).reshape([-1, 1])
-        tiledmask = torch.Tensor.repeat(mask, [L, 1])
-
-        all_log_pxgivenz_flat = td.Normal(
-            loc=all_means_obs_model.reshape([-1, 1]),
-            scale=all_scales_obs_model.reshape([-1, 1])
-        ).log_prob(data_flat)
-        all_log_pxgivenz = all_log_pxgivenz_flat.reshape([-1, self.n_inputs])
-
-        logpxobsgivenz = torch.sum(all_log_pxgivenz * tiledmask, 1).reshape(
-            [L, -1]
-        )
-        logpz = self.p_z.log_prob(zgivenx)
-        logq = q_zgivenxobs.log_prob(zgivenx)
-
-        xgivenz = td.Independent(
-            td.Normal(
-                loc=all_means_obs_model,
-                scale=all_scales_obs_model
-            ),
-            1,
-        )
-
-        return xgivenz, logpxobsgivenz, logpz, logq
-
-
-
-class MIWAERegressor(BaseEstimator):
-    """Imputes and then runs a MLP (Pytorch based, same as for NeuMiss)
-    on the imputed data.
-
-    Parameters
-    ----------
-
-    add_mask: bool
-        Whether or not to concatenate the mask with the data.
-
-    imputation_type: str
-        One of 'mean' or 'MICE'.
-
-    est_params: dict
-        The dictionary containing the parameters for the MLP.
-    """
-
-    def __init__(self, latent_size, encoder_width, K=20, n_draws=5, device='cpu', early_stopping=False, verbose=False, **mlp_params):
-
-        self.latent_size = latent_size
+    def __init__(self, input_size, encoder_width, latent_size, K=20, n_draws=5, mode='joint', save_dir='tmp', device='cpu', **mlp_params):
+        self.input_size = input_size
         self.encoder_width = encoder_width
+        self.latent_size = latent_size
         self.K = K
+        self.n_draws = n_draws
 
+        self.mlp_params = mlp_params
         self.n_epochs = mlp_params.get('n_epochs', 100)
         self.batch_size = mlp_params.get('batch_size', 32)
         self.weight_decay = mlp_params.get('weight_decay', 0)
         self.lr = mlp_params.get('lr', 1.e-3)
-
-        self.mlp_params = mlp_params
-        self.n_draws = n_draws
-
-        self.verbose = verbose
+        self.verbose = mlp_params.get('verbose', False)
+        self.early_stop = mlp_params.get('early_stopping', False)
+        
+        self.mode = mode
+        self.save_path = f'{save_dir}/miwae_{input_size}_{encoder_width}_{latent_size}_{K}.pt'
         self.device = device
-        self.early_stop = early_stopping
 
-        self._reg = MLP_reg(is_mask=False, early_stopping=early_stopping, verbose=verbose, **self.mlp_params)
+        self._imp = MIWAE(input_size, encoder_width, latent_size)
+        self._reg = MLP_reg(is_mask=False, **mlp_params)
 
     def concat_mask(self, X, T):
         if self.imputation_type == 'MultiMICE':
@@ -176,9 +80,6 @@ class MIWAERegressor(BaseEstimator):
 
         n = X.shape[0]  # number of observations
         p = X.shape[1]  # number of features
-
-        self._imp = MIWAE(p, self.encoder_width, self.latent_size)
-        self._imp.to(self.device)
 
         optimizer = optim.Adam(self._imp.parameters(), lr=self.lr,)
 
@@ -256,12 +157,20 @@ class MIWAERegressor(BaseEstimator):
                 T.append(xhat.numpy())
         return np.stack(T)
 
-    def fit(self, X, y, X_val=None, y_val=None, X_true=None):
-        self._train_imputer(X, X_val)
-        T = self.impute(X)
-        T_val = self.impute(X_val)
+    def fit(self, X, y, X_val=None, y_val=None):
+        if self.mode in ['join', 'imputer-only']:
+            self._train_imputer(X, X_val)
+            if self.mode == 'imputer-only':
+                torch.save(self._imp.state_dict(), self.save_path)
+        else: 
+            self._imp.load_state_dict(torch.load(self.save_path))
+        
+        if self.mode in ['joint', 'predictor-only']:
+            T = self.impute(X)
+            T_val = self.impute(X_val)
 
-        self._reg.fit(T, y, X_val=T_val, y_val=y_val)
+            self._reg.fit(T, y, X_val=T_val, y_val=y_val)
+        
         return self
 
     def predict(self, X):
