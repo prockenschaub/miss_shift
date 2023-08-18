@@ -50,7 +50,7 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, t
         est = Neumiss
     elif 'neumice' in method:
         est = NeuMICE
-    elif method == "miwae":
+    elif "miwae" in method:
         est = MIWAEMLP
     elif 'oracle_impute' in method:
         est = OracleImputeMLP
