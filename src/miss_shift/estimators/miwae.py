@@ -2,24 +2,14 @@ import numpy as np
 from sklearn.base import BaseEstimator
 
 import torch
-from torch import nn
-import torch.distributions as td
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from ..misc.pytorchtools import EarlyStopping
+from ..networks.miwae import MIWAE
 from ..networks.mlp import MLP_reg
 
-def weights_init(layer) -> None:
-    if type(layer) == nn.Linear:
-        torch.nn.init.orthogonal_(layer.weight)
-
-
-class MIWAE(nn.Module):
-    def __init__(self, n_inputs, width, latent_size, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        self.n_inputs = n_inputs
+class MIWAEMLP(BaseEstimator):
         self.latent_size = latent_size
 
         self.p_z = td.Independent(

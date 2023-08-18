@@ -6,9 +6,9 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 from .data.generation import gen_params, gen_data
 from .estimators.neumiss import Neumiss
 from .estimators.neumice import NeuMICE
-from .estimators.conditional_impute import ImputeMLPPytorch
-from .estimators.oracle_impute import OracleImputeMLPPytorch
-from .estimators.miwae import MIWAERegressor
+from .estimators.conditional_impute import ImputeMLP
+from .estimators.oracle_impute import OracleImputeMLP
+from .estimators.miwae import MIWAEMLP
 from .oracles.conditional import BayesPredictor_GSM_nonlinear, BayesPredictor_MCAR_MAR_nonlinear
 from .oracles.probabilistic import ProbabilisticBayesPredictor
 
@@ -50,11 +50,11 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
     elif 'neumice' in method:
         est = NeuMICE
     elif method == "miwae":
-        est = MIWAERegressor
+        est = MIWAEMLP
     elif 'oracle_impute' in method:
-        est = OracleImputeMLPPytorch
+        est = OracleImputeMLP
     elif ('mean_impute' in method) or ('mice_impute' in method)  or ('multimice_impute' in method):
-        est = ImputeMLPPytorch
+        est = ImputeMLP
     elif 'gbrt' in method:
         est = HistGradientBoostingRegressor
     else:

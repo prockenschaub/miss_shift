@@ -6,7 +6,7 @@ from sklearn.impute import IterativeImputer, SimpleImputer
 from ..networks.mlp import MLP_reg
 from ..misc.iterativeimputer import FastIterativeImputer
 
-class ImputeMLPPytorch(BaseEstimator):
+class ImputeMLP(BaseEstimator):
     """Imputes and then runs a MLP (Pytorch based, same as for NeuMiss)
     on the imputed data.
 

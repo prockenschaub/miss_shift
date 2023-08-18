@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator
 from ..networks.mlp import MLP_reg
 
 
-class OracleImputeMLPPytorch(BaseEstimator):
+class OracleImputeMLP(BaseEstimator):
     """Imputes using an oracle and then runs a MLP on the imputed data.
        The oracle is for Gaussian data with M(C)AR or Gaussian self-masking
        missing data mechanisms.
