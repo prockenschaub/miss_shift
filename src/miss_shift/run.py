@@ -102,8 +102,8 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, t
         elif method in ['oracle_impute']:
             reg = est(orig_params, **method_params)
             reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
-        elif method == 'miwae':
-            save_dir = os.path.join(tmp_dir, 'miwae', f'n={n}', f'iter={it}')
+        elif 'miwae' in method:
+            save_dir = os.path.join(tmp_dir, 'miwae', f'n={n}', f'prop_latent={data_desc["prop_latent"]}', f'iter={it}')
             os.makedirs(save_dir, exist_ok=True)
 
             reg = est(**method_params, save_dir=save_dir)
