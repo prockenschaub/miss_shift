@@ -10,7 +10,7 @@ from ..networks.miwae import MIWAE
 from ..networks.mlp import MLP_reg
 
 class MIWAEMLP(BaseEstimator):
-    def __init__(self, input_size, encoder_width, latent_size, K=20, n_draws=5, mode='joint', save_dir='tmp', device='cpu', **mlp_params):
+    def __init__(self, input_size, encoder_width, latent_size, K=20, n_draws=5, add_mask=False, mode='joint', save_dir='tmp', device='cpu', **mlp_params):
         self.input_size = input_size
         self.encoder_width = encoder_width
         self.latent_size = latent_size
@@ -25,23 +25,14 @@ class MIWAEMLP(BaseEstimator):
         self.verbose = mlp_params.get('verbose', False)
         self.early_stop = mlp_params.get('early_stopping', False)
         
+        self.add_mask = add_mask
+
         self.mode = mode
         self.save_path = f'{save_dir}/miwae_{input_size}_{encoder_width}_{latent_size}_{K}.pt'
         self.device = device
 
         self._imp = MIWAE(input_size, encoder_width, latent_size)
         self._reg = MLP_reg(is_mask=False, **mlp_params)
-
-    def concat_mask(self, X, T):
-        if self.imputation_type == 'MultiMICE':
-            # replicate the mask, because T is now of shape [n_samples, n_draws, n_features]
-            M = np.isnan(X)
-            M = np.repeat(M, self.n_draws, axis=0).reshape(T.shape)
-            T = np.concatenate((T, M), axis=2)
-        else:
-            M = np.isnan(X)
-            T = np.hstack((T, M))
-        return T
 
     def _miwae_loss(self, iota_x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         _, logpxobsgivenz, logpz, logq = self._imp(iota_x, mask, self.K)
@@ -63,6 +54,9 @@ class MIWAEMLP(BaseEstimator):
         xm = torch.einsum("ki,kij->ij", imp_weights, xms)
 
         return xm
+
+    def _conditional_impute(self, iota_x: torch.Tensor, mask: torch.Tensor):
+        return self._imp(iota_x, mask, 0)
 
     def _train_imputer(self, X, X_val=None):
         X = torch.from_numpy(X).float().to(self.device)
@@ -142,6 +136,17 @@ class MIWAEMLP(BaseEstimator):
 
         return self
 
+    def concat_mask(self, X, T):
+        if self.n_draws > 0:
+            # replicate the mask, because T is now of shape [n_samples, n_draws, n_features]
+            M = np.isnan(X)
+            M = np.repeat(M, self.n_draws, axis=0).reshape(T.shape)
+            T = np.concatenate((T, M), axis=2)
+        else:
+            M = np.isnan(X)
+            T = np.hstack((T, M))
+        return T
+
     def impute(self, X):
         X = torch.from_numpy(X).float().to(self.device)
         mask = np.isfinite(X.cpu()).bool().to(self.device)
@@ -149,13 +154,18 @@ class MIWAEMLP(BaseEstimator):
         xhat_0 = torch.clone(X)
         xhat_0[np.isnan(X.cpu()).bool()] = 0
 
-        T = []
-        for _ in range(self.n_draws):
+        if self.n_draws == 0:
             with torch.no_grad():
-                xhat = torch.clone(xhat_0)
-                xhat[~mask] = self._miwae_impute(iota_x=xhat_0, mask=mask, L=10,)[~mask]
-                T.append(xhat.numpy())
-        return np.stack(T)
+                xhat_0[~mask] = self._conditional_impute(iota_x=xhat_0, mask=mask)[~mask]
+            return xhat_0
+        else:
+            T = []
+            for _ in range(self.n_draws):
+                with torch.no_grad():
+                    xhat = torch.clone(xhat_0)
+                    xhat[~mask] = self._miwae_impute(iota_x=xhat_0, mask=mask, L=10,)[~mask]
+                    T.append(xhat.numpy())
+            return np.stack(T)
 
     def fit(self, X, y, X_val=None, y_val=None):
         if self.mode in ['join', 'imputer-only']:
@@ -169,11 +179,16 @@ class MIWAEMLP(BaseEstimator):
             T = self.impute(X)
             T_val = self.impute(X_val)
 
+            if self.add_mask:
+                T = self.concat_mask(X, T)
+                T_val = self.concat_mask(X_val, T_val)
+
             self._reg.fit(T, y, X_val=T_val, y_val=y_val)
         
         return self
 
     def predict(self, X):
         T = self.impute(X)
-    
+        if self.add_mask:
+            T = self.concat_mask(X, T)
         return self._reg.predict(T)
