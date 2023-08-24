@@ -93,7 +93,7 @@ estimators:
     width_factor: [1, 5, 10]
     weight_decay: [1.e-5, 1.e-4, 1.e-3]
     lr: [1.e-2, 5.e-3, 1.e-3]
-  miwae-pretrain:
+  miwae_pretrain:
     mode: 'imputer-only'
     n_draws: 5
     input_size: 50
@@ -118,8 +118,24 @@ estimators:
     early_stopping: True
     mlp_depth: [1, 2, 5]
     width_factor: [1, 5, 10]
-    weight_decay: [1.e-5, 1.e-3]
-    lr: [1.e-2, 1.e-3]
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
+  miwae_cond:
+    mode: 'predictor-only'
+    n_draws: 0
+    input_size: 50
+    latent_size: 25
+    encoder_width: 128
+    K: 20
+    n_epochs: 1000
+    batch_size: 100
+    optimizer: 'adam'
+    early_stopping: True
+    add_mask: True
+    mlp_depth: [1, 2, 5]
+    width_factor: [1, 5, 10]
+    weight_decay: [1.e-5, 1.e-4, 1.e-3]
+    lr: [1.e-2, 5.e-3, 1.e-3]
     verbose: True
   neumiss:
     n_epochs: 1000
