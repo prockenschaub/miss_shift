@@ -6,13 +6,13 @@ data:
     prop_latent: [0.3, 0.7]
     snr: 10
     link: 'stairs'
-    data_path: 'None'
+    data_path: ~
   libdd:
     n_features: 50
     prop_latent: [0.3, 0.7]
     snr: 10
     link: 'stairs'
-    data_path: "/home/marta/Desktop/Miss_shift/miss_shift/src/miss_shift/data/LIBDD_den_final_10000"
+    data_path: "/home/patrick/projects/libd_data_selection/LIBDD_den_final_200000"
 missingness:
   mcar: 
     orig: 
@@ -83,10 +83,10 @@ estimators:
     early_stopping: True
     init_type: 'uniform'
     add_mask: [True]
-    mlp_depth: [1, 2, 5]
-    width_factor: [1, 5, 10]
-    weight_decay: [1.e-5, 1.e-4, 1.e-3]
-    lr: [1.e-2, 5.e-3, 1.e-3]
+    mlp_depth: [5]
+    width_factor: [10]
+    weight_decay: [1.e-4]
+    lr: [1.e-3]
   multimice_impute:
     imputation_type: 'MultiMICE'
     n_draws: 5

@@ -145,6 +145,7 @@ if __name__ == "__main__":
     parser.add_argument('experiment', help='YAML specifying the experiment conditions (data gen, missingness, hyperparams)', type=str)
     parser.add_argument('scenario', help='missing data scenario (defined in experiment)', type=str)
     parser.add_argument('estimator', help='estimator to use (can be "all", a name, or a number corresponding to the order in the experiment YAML)', type=str)
+    parser.add_argument('--data', help='type of dataset to train on (defined in experiment)', type=str, default="simulated")
     parser.add_argument('--link', help='type of link function for the outcome',
                         choices=['linear', 'square', 'stairs',
                                 'discontinuous_linear'], required=False)
@@ -154,7 +155,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_train', help='list of train set size(s)', nargs='+', type=int, default=20000)
     parser.add_argument('--n_val', help='size of the validation set', type=int, default=10000)
     parser.add_argument('--n_test', help='size of the test set', type=int, default=10000)
-    parser.add_argument('--data', help='size of the test set', type=str, default="simulated")
+    
     # Define computational resources, paths, etc.
     parser.add_argument('--n_jobs', help='number of jobs to run in parallel', type=int, default=1)
     parser.add_argument('--out_dir', help='directory where to store the results', type=str, default='results')
