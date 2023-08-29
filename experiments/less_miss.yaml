@@ -9,7 +9,7 @@ data:
     data_path: ~
   libdd:
     n_features: 50
-    prop_latent: [0.3, 0.7]
+    prop_latent: 1
     snr: 10
     link: 'stairs'
     data_path: "/home/patrick/projects/libd_data_selection/LIBDD_den_final_200000"

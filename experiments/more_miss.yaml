@@ -1,18 +1,18 @@
 name: 'more_miss'
 
-ata:
+data:
   simulated:
     n_features: 50
     prop_latent: [0.3, 0.7]
     snr: 10
     link: 'stairs'
-    data_path: 'None'
+    data_path: ~
   libdd:
     n_features: 50
-    prop_latent: [0.3, 0.7]
+    prop_latent: 1
     snr: 10
     link: 'stairs'
-    data_path: "/home/marta/Desktop/Miss_shift/miss_shift/src/miss_shift/data/LIBDD_den_final_10000"
+    data_path: "/home/patrick/projects/libd_data_selection/LIBDD_den_final_200000"
 missingness:
   mcar: 
     orig: 
