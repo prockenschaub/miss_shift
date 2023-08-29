@@ -171,20 +171,22 @@ def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
     
     current_size = 0
 
+    if data_path is not None:
+        real_data = pd.read_csv(data_path)
+        real_data = real_data.values.astype(float)
+        real_data = (real_data - real_data.mean(axis=0)) / real_data.std(axis=0)
+
     for _, n_samples in enumerate(n_sizes):
-        if data_path=='None':
+        if data_path is not None:
+            current_X = real_data[current_size:n_samples, :]
+        else:
             current_X = rng_data.multivariate_normal(
                     mean=mean, cov=cov,
                     size=n_samples-current_size,
                     check_valid='raise')
-        else:
-            real_data=pd.read_csv(data_path)
-            current_X = real_data.values.astype(float)
             
-            if n_samples > current_X.shape[0]:
-                raise ValueError
-        current_y=gen_y(current_X, snr, link, curvature, beta, n_samples, current_size,seed_data)
-        current_Xm=gen_mask(current_X,mean, cov, masking_params, seed_ampute)
+        current_y = gen_y(current_X, snr, link, curvature, beta, n_samples-current_size, seed_data)
+        current_Xm = gen_mask(current_X, mean, cov, masking_params, seed_ampute)
 
         X = np.vstack((X, current_X))
         Xm = np.vstack((Xm, current_Xm))
