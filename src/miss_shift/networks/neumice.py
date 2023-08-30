@@ -54,16 +54,21 @@ class NeuMICEBlock(nn.Module):
         self.reset_parameters()
 
     def forward(self, x: Tensor) -> Tensor:
-        x = x.type(self.dtype)  # Cast tensor to appropriate dtype
-        mask = Mask(x)  # Initialize mask non-linearity
-        x = torch.nan_to_num(x)  # Fill missing values with 0
-        s0 = self.init(x)
-        skip = SkipConnection(x)  # Initialize skip connection with this value
+        x = x.type(self.dtype)  # cast tensor to appropriate dtype
+        
+        mask = Mask(x)                     # initialize mask non-linearity
+        x = x - mask(self.mu, invert=True) # center the observed covariates
+        x = torch.nan_to_num(x)            # fill missing values with 0
+        
+        skip = SkipConnection(x)  # initialize skip connection with this value
 
-        layer = [self.norm, self.linear, mask, skip]  # One Neumann iteration
-        layers = Sequential(*(layer*self.depth))  # Neumann block
+        layer = [self.linear, mask, skip, self.norm]  # one iteration
+        layers = Sequential(*(layer*self.depth))      # n iterations in a block
 
-        return layers(s0)
+        x0 = self.norm(skip(mask(self.init(x)))) # inital imputation
+        xn = layers(x0)
+
+        return xn
 
     def reset_parameters(self) -> None:
         nn.init.normal_(self.mu)
