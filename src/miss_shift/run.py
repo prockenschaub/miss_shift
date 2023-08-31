@@ -1,4 +1,5 @@
 from copy import deepcopy
+import os
 
 import torch
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -6,13 +7,14 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 from .data.generation import gen_params, gen_data
 from .estimators.neumiss import Neumiss
 from .estimators.neumice import NeuMICE
-from .estimators.conditional_impute import ImputeMLPPytorch
-from .estimators.oracle_impute import OracleImputeMLPPytorch
+from .estimators.conditional_impute import ImputeMLP
+from .estimators.oracle_impute import OracleImputeMLP
+from .estimators.miwae import MIWAEMLP
 from .oracles.conditional import BayesPredictor_GSM_nonlinear, BayesPredictor_MCAR_MAR_nonlinear
 from .oracles.probabilistic import ProbabilisticBayesPredictor
 
 
-def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
+def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, tmp_dir='tmp'):
 
     if not isinstance(n_train, list):
         n_train = [n_train]
@@ -48,10 +50,12 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         est = Neumiss
     elif 'neumice' in method:
         est = NeuMICE
+    elif "miwae" in method:
+        est = MIWAEMLP
     elif 'oracle_impute' in method:
-        est = OracleImputeMLPPytorch
+        est = OracleImputeMLP
     elif ('mean_impute' in method) or ('mice_impute' in method)  or ('multimice_impute' in method):
-        est = ImputeMLPPytorch
+        est = ImputeMLP
     elif 'gbrt' in method:
         est = HistGradientBoostingRegressor
     else:
@@ -98,6 +102,15 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm):
         elif method in ['oracle_impute']:
             reg = est(orig_params, **method_params)
             reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
+        elif 'miwae' in method:
+            save_dir = os.path.join(tmp_dir, 'miwae', f'n={n}', f'prop_latent={data_desc["prop_latent"]}', f'iter={it}')
+            os.makedirs(save_dir, exist_ok=True)
+
+            reg = est(**method_params, save_dir=save_dir)
+            reg.fit(Xm_train, y_train, X_val=Xm_val_es, y_val=y_val_es)
+
+            if method_params['mode'] == 'imputer-only':
+                continue
         else:
             # For these methods the validatin data for early stopping should be
             # given as standalone data.

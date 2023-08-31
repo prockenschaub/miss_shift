@@ -33,7 +33,9 @@ fields = ['iter', 'method', 'n', 'mse_train', 'mse_val', 'mse_test', 'mse_test_m
           'n_trials_no_change', 'validation_fraction', 'add_mask', 'imputation_type', 
           'n_features', 'prop_latent', 'snr', 'miss_orig', 'miss_shift',
           'link', 'curvature', 'width_factor', 'max_leaf_nodes', 'min_samples_leaf',
-          'use_y_for_impute']
+          'use_y_for_impute',
+          'mode', 'input_size', 'latent_size', 'encoder_width', 'K'
+   ]
 
 ResultItem = namedtuple('ResultItem', fields)
 ResultItem.__new__.__defaults__ = (np.nan, )*len(ResultItem._fields)
@@ -110,9 +112,11 @@ def launch(args):
                 for it in range(args.n_trials):
                     runs.append([data_desc, nm, params, it])
 
+        print(f'Run {len(scope)} hyperparam combinations for {args.n_trials} trials, resulting in {len(runs)} runs')
+
         results = Parallel(n_jobs=args.n_jobs, verbose=11)(
              delayed(run_one)(data_desc, method, method_params, it, args.n_train,
-                             args.n_test, args.n_val, miss_orig['mdm'])
+                             args.n_test, args.n_val, miss_orig['mdm'], args.tmp_dir)
              for data_desc, method, method_params, it in runs
          )
         
@@ -154,7 +158,7 @@ if __name__ == "__main__":
     # Define computational resources, paths, etc.
     parser.add_argument('--n_jobs', help='number of jobs to run in parallel', type=int, default=1)
     parser.add_argument('--out_dir', help='directory where to store the results', type=str, default='results')
-
+    parser.add_argument('--tmp_dir', help='directory where to store any other files (e.g., pre-trained imputation models)', type=str, default='tmp')
 
     args = parser.parse_known_args()[0]
     launch(args)
