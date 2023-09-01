@@ -15,7 +15,7 @@ NAMES = {
     'miwae_cond_mask': 'AE + mask',
     'miwae': 'MIWAE',
     'neumiss': 'NeuMiss',
-    'neumice': 'NeuMISE',
+    'neumice': 'NeuMISE (ours)',
     'mice_impute_using_y': 'ICE+Y',
     'multimice_impute_using_y': 'MICE+Y',
 }
