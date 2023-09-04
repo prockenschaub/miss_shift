@@ -185,7 +185,7 @@ def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
                     size=n_samples-current_size,
                     check_valid='raise')
             
-        current_y = gen_y(current_X, snr, link, curvature, beta, n_samples-current_size, seed_data)
+        current_y = gen_y(current_X, snr, link, curvature, beta, n_samples-current_size, rng_data)
         current_Xm = gen_mask(current_X, mean, cov, masking_params, seed_ampute)
 
         X = np.vstack((X, current_X))
