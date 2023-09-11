@@ -125,7 +125,7 @@ def gen_y(X, snr, link, curvature, beta, n_samples, seed_data=None):
     y += noise
     return y
 
-def gen_mask(X,mean, cov, masking_params, seed_ampute=None):
+def gen_mask(X, y, mean, cov, masking_params, seed_ampute=None):
     rng_ampute = check_random_state(seed_ampute)
 
     masking = masking_params['mdm']
@@ -143,6 +143,8 @@ def gen_mask(X,mean, cov, masking_params, seed_ampute=None):
         sample_vars = masking_params.get('sample_vars', False)
         M = MAR_monotone_logistic(X, missing_rate, prop_for_masking,
                                 rng_ampute, sample_vars=sample_vars)
+    elif masking == 'MAR_on_y':
+        M = MAR_on_y(X, y, missing_rate, rng_ampute)
     elif masking == 'MNAR_logistic':
         M = MNAR_logistic(X, missing_rate, rng_ampute)
     elif masking == 'MNAR_logistic_uniform':
@@ -186,7 +188,7 @@ def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
                     check_valid='raise')
             
         current_y = gen_y(current_X, snr, link, curvature, beta, n_samples-current_size, rng_data)
-        current_Xm = gen_mask(current_X, mean, cov, masking_params, seed_ampute)
+        current_Xm = gen_mask(current_X, current_y, mean, cov, masking_params, seed_ampute)
 
         X = np.vstack((X, current_X))
         Xm = np.vstack((Xm, current_Xm))
