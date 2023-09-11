@@ -37,8 +37,8 @@ COLORS = {
 
 # Preprocess the scores
 
-def load_scores(experiment, link, scenario, dir='results'):
-    folder = os.path.join(dir, experiment, link, scenario)
+def load_scores(experiment, data, link, scenario, dir='results'):
+    folder = os.path.join(dir, experiment, data, link, scenario)
     files = os.listdir(folder)
     
     scores = [pd.read_csv(os.path.join(folder, f)) for f in files if '.csv' in f]
