@@ -55,5 +55,6 @@ MANIFEST
 
 # Result files
 results/*
+!results/placeholder.txt
 *.csv
 *.png
