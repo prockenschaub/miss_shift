@@ -53,6 +53,7 @@ MANIFEST
 .conda*/
 .python-version
 
+# Result files
+results/*
 *.csv
 *.png
-.DS_Store
