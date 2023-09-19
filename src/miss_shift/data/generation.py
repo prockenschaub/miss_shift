@@ -7,10 +7,12 @@ from sklearn.utils import check_random_state
 from scipy.stats import norm
 from math import sqrt, log, pi
 from scipy.optimize import root_scalar
+from typing import List
 
-from .amputation import MCAR, MAR_logistic, MAR_monotone_logistic, MAR_on_y, MNAR_logistic, MNAR_logistic_uniform, gaussian_sm
+from .amputation import MCAR, MAR_monotone_logistic, MAR_on_y, gaussian_sm
 
-def _validate_masking_params(masking_params):
+def _validate_masking_params(masking_params: dict):
+    """Ensure all parameters for the missingness mechanism are within a reasonable range"""
     mdm = masking_params['mdm']
         
     missing_rate = masking_params.get('missing_rate', -1)
@@ -29,8 +31,28 @@ def _validate_masking_params(masking_params):
         
 
 
-def gen_params(n_features, prop_latent, masking_params, snr, 
-               link='linear',data_path=None, curvature=1, seed_data=None, seed_ampute=None):
+def gen_params(n_features: int, prop_latent: float, masking_params: dict, snr: int, 
+               link: str = 'linear', data_path: str | None = None, curvature: int = 1, 
+               seed_data: None | int | np.random.RandomState = None, 
+               seed_ampute: None | int | np.random.RandomState = None) -> tuple:
+    """Generate all necessary parameters for the data generation given a set of initial parameters
+
+    Args:
+        n_features: number of covariates
+        prop_latent: the parameter called `lambda` in the paper that controls the amount of correlation 
+            between covariates (only for the fully simulated data)
+        data_path: file path to real-world data (only relevant for lbidd). Defaults to None.
+        link: shape of the outcome function. One of 'linear', 'square', 'cube', 'stairs', or 
+            'discontinuous_linear'. Defaults to 'linear'.
+        curvature: curvature of the outcome function. Defaults to 1.
+        snr: signal-to-noise ratio for the simulated outcome
+        masking_params: parameters governing the missingness mechanism
+        seed_data: random seed used to generate the data. Defaults to None.
+        seed_ampute: random seed used to generate the missingness. Defaults to None.
+
+    Returns:
+        a filled-in tuple with any additionally required parameters
+    """
     _validate_masking_params(masking_params)
     
     if prop_latent > 1 or prop_latent < 0:
@@ -96,9 +118,26 @@ def gen_params(n_features, prop_latent, masking_params, snr,
 
     return (n_features, mean, cov, beta, masking_params, snr, link, data_path, curvature)
 
-def gen_y(X, snr, link, curvature, beta, n_samples, seed_data=None):
+
+def gen_y(X: np.ndarray, snr: int, link: str, curvature: int, beta: np.ndarray, 
+          seed_data: None | int | np.random.RandomState = None) -> np.ndarray:
+    """Simulate the outcome
+
+    Args:
+        X: the covariates
+        link: shape of the outcome function. One of 'linear', 'square', 'cube', 'stairs', or 
+            'discontinuous_linear'. Defaults to 'linear'.
+        curvature: curvature of the outcome function. Defaults to 1.
+        snr: signal-to-noise ratio for the simulated outcome
+        beta: linear coefficients of the covariates before they are passed through the link
+        seed_data: random seed used to generate the outcome. Defaults to None.
+
+    Returns:
+        a simulated outcome vector
+    """
     rng_data = check_random_state(seed_data)
 
+    n_samples, _ = X.shape
     dot_product = X.dot(beta[1:]) + beta[0]
 
     if link == 'linear':
@@ -125,7 +164,21 @@ def gen_y(X, snr, link, curvature, beta, n_samples, seed_data=None):
     y += noise
     return y
 
-def gen_mask(X, y, mean, cov, masking_params, seed_ampute=None):
+def gen_mask(X: np.ndarray, y: np.ndarray, mean: np.ndarray, cov: np.ndarray, 
+             masking_params: dict, seed_ampute: None | int | np.random.RandomState = None) -> np.ndarray:
+    """Simulate the missingness
+
+    Args:
+        X: the covariates
+        y: the outcome
+        mean: the mean of the covariates 
+        cov: the covariance of the covariates
+        masking_params: parameters governing the missingness mechanism
+        seed_ampute: random seed used to generate the missingness. Defaults to None.
+
+    Returns:
+        mask: boolean mask of generated missing values (True if the value is missing).
+    """
     rng_ampute = check_random_state(seed_ampute)
 
     masking = masking_params['mdm']
@@ -133,11 +186,6 @@ def gen_mask(X, y, mean, cov, masking_params, seed_ampute=None):
 
     if masking == 'MCAR':
         M = MCAR(X, missing_rate, rng_ampute)
-    elif masking == 'MAR_logistic':
-        prop_for_masking = masking_params['prop_for_masking']
-        sample_vars = masking_params.get('sample_vars', False)
-        M = MAR_logistic(X, missing_rate, prop_for_masking,
-                                rng_ampute, sample_vars=sample_vars)
     elif masking == 'MAR_monotone_logistic':
         prop_for_masking = masking_params['prop_for_masking']
         sample_vars = masking_params.get('sample_vars', False)
@@ -145,11 +193,6 @@ def gen_mask(X, y, mean, cov, masking_params, seed_ampute=None):
                                 rng_ampute, sample_vars=sample_vars)
     elif masking == 'MAR_on_y':
         M = MAR_on_y(X, y, missing_rate, rng_ampute)
-    elif masking == 'MNAR_logistic':
-        M = MNAR_logistic(X, missing_rate, rng_ampute)
-    elif masking == 'MNAR_logistic_uniform':
-        M = MNAR_logistic_uniform(X, missing_rate,
-                                        prop_for_masking, rng_ampute)
     elif masking == 'gaussian_sm':
         sm_type = masking_params['sm_type']
         sm_param = masking_params['sm_param']
@@ -162,7 +205,20 @@ def gen_mask(X, y, mean, cov, masking_params, seed_ampute=None):
     np.putmask(Xm, M, np.nan)
     return Xm
 
-def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
+def gen_data(n_sizes: List[int], data_params: dict, seed_data: None | int | np.random.RandomState = None, 
+             seed_ampute: None | int | np.random.RandomState = None) -> tuple:
+    """Generate the full data (covariates, outcome, missingness)
+
+    Args:
+        n_sizes: size of one or more datasets in increasing order
+        data_params: parameters governing the data generation
+        seed_data: random seed used to generate the data. Defaults to None.
+        seed_ampute: random seed used to generate the missingness. Defaults to None.
+
+    Yields:
+        a tuple with the complete covariates (counterfactual), the partially-observed covariates, and 
+        the outcome
+    """
 
     rng_data = check_random_state(seed_data)
 
@@ -187,7 +243,7 @@ def gen_data(n_sizes, data_params, seed_data=None, seed_ampute=None):
                     size=n_samples-current_size,
                     check_valid='raise')
             
-        current_y = gen_y(current_X, snr, link, curvature, beta, n_samples-current_size, rng_data)
+        current_y = gen_y(current_X, snr, link, curvature, beta, rng_data)
         current_Xm = gen_mask(current_X, current_y, mean, cov, masking_params, seed_ampute)
 
         X = np.vstack((X, current_X))
