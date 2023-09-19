@@ -5,25 +5,27 @@ from math import sqrt, pi
 
 
 class ProbabilisticBayesPredictor(BaseEstimator):
-    """Imputes using an oracle distribution and then runs the true function f* on the imputed data.
+    """Probabilistic oracle which multiple imputes with an oracle distribution and then 
+    runs the true function f* on the imputed data.
 
-    Parameters
-    ----------
-    mdm: str
-        The missing data mechanism: either 'MCAR', 'MAR' or 'gaussian_sm'.
-
-    mu: array-like, shape (n_features, )
-        Mean of the Gaussian distribution.
-
-    Sigma: array-like, shape (n_features, n_features)
-        Covariance matrix of the Gaussian distribution.
+    Args: 
+        data_params: 8-tuple defining the data generation mechanism. The following elements are used
+            (_, mu, Sigma, beta, masking_params, _, link, _, curvature) 
+        n_draws: number of imputations to draw
     """
-
-    def __init__(self, data_params, n_draws=10):
+    def __init__(self, data_params: tuple, n_draws: int = 10):
         self.data_params = data_params
         self.n_draws = n_draws
 
-    def oracle_impute(self, X):
+    def oracle_impute(self, X: np.ndarray) -> np.ndarray:
+        """Perform a single imputation
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+
+        Returns:
+            imputed (n, d) covariates w/o missingness
+        """
         (_, mu, Sigma, _, masking_params, _, _, _, _) = self.data_params
         
         mdm = masking_params['mdm']
@@ -70,7 +72,15 @@ class ProbabilisticBayesPredictor(BaseEstimator):
     def fit(self, X, y, X_val=None, y_val=None):
         return self
 
-    def predict_f_star(self, X):
+    def predict_f_star(self, X: np.ndarray) -> np.ndarray:
+        """Apply f* to the data
+
+        Args:
+            X: imputed (n, d) covariates w/o missingness
+
+        Returns:
+            predicted outcomes
+        """
         (_, _, _, beta, _, _, link, _, curvature) = self.data_params
         
         pred = []
@@ -98,7 +108,15 @@ class ProbabilisticBayesPredictor(BaseEstimator):
 
         return np.array(pred)
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Predict the outcome from partially-observed data.
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+
+        Returns:
+            predicted outcomes (n, d)
+        """
         pred = []
         for _ in range(self.n_draws):
             T = self.oracle_impute(X)

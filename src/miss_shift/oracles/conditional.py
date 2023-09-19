@@ -5,10 +5,15 @@ from scipy.stats import norm
 from math import sqrt, pi
 
 class BayesPredictor_GSM_nonlinear(BaseEstimator):
-    """This is the Bayes predicor for Gaussian data with a Gaussian
-    selfmasking missing data mechanism"""
+    """Bayes predicor for multivariate normal data with Gaussian self-masking.
 
-    def __init__(self, data_params, order0=False):
+    Args: 
+        data_params: 8-tuple defining the data generation mechanism. The following elements are used
+            (_, mu, cov, beta, masking_params, _, link, _, curvature)
+        order0: flag specifying whether an order 0 approximation should be used (=conditional oracle). 
+            Defaults to False.
+    """
+    def __init__(self, data_params: tuple, order0: bool = False):
 
         _, _, _, _, masking_params, _, _, _ = data_params
 
@@ -26,8 +31,15 @@ class BayesPredictor_GSM_nonlinear(BaseEstimator):
     def fit(self, X, y):
         return self
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Predict the outcome from partially-observed data.
 
+        Args:
+            X: original (n, d) covariates w/ missingness
+
+        Returns:
+            predicted outcomes (n, d)
+        """
         _, mu, cov, beta, masking_params, _, link, _, curvature = self.data_params
 
         sm_params = masking_params['sm_param']
@@ -94,17 +106,30 @@ class BayesPredictor_GSM_nonlinear(BaseEstimator):
 
 
 class BayesPredictor_MCAR_MAR_nonlinear(BaseEstimator):
-    """This is the Bayes predictor for multivariate Gaussian data, MCAR or
-    MAR missing data mechanisms."""
-
-    def __init__(self, data_params, order0=False):
+    """Bayes predictor for multivariate normal data with MCAR or MAR missingness mechanisms.
+    
+    Args: 
+        data_params: 8-tuple defining the data generation mechanism. The following elements are used
+            (_, mu, sigma, beta, _, _, link, _, curvature)
+        order0: flag specifying whether an order 0 approximation should be used (=conditional oracle). 
+            Defaults to False.
+    """
+    def __init__(self, data_params: tuple, order0: bool = False):
         self.data_params = data_params
         self.order0 = order0
 
     def fit(self, X, y):
         return self
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Predict the outcome from partially-observed data.
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+
+        Returns:
+            predicted outcomes (n, d)
+        """
         (_, mu, sigma, beta, _, _, link, _, curvature) = self.data_params
 
         pred = []
