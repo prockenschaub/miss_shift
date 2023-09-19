@@ -20,25 +20,25 @@ def plot_hyperparams(method, n, param):
         hue='prop_latent'
     )
 
-plot_hyperparams('mice_impute_mask', 1e5, 'mlp_depth')
-plot_hyperparams('mice_impute_mask', 1e5, 'width_factor')
-plot_hyperparams('mice_impute_mask', 1e5, 'lr')
-plot_hyperparams('mice_impute_mask', 1e5, 'weight_decay')
+plot_hyperparams('ice_impute_mask', 1e5, 'mlp_depth')
+plot_hyperparams('ice_impute_mask', 1e5, 'width_factor')
+plot_hyperparams('ice_impute_mask', 1e5, 'lr')
+plot_hyperparams('ice_impute_mask', 1e5, 'weight_decay')
 
-plot_hyperparams('multimice_impute', 1e5, 'mlp_depth')
-plot_hyperparams('multimice_impute', 1e5, 'width_factor')
-plot_hyperparams('multimice_impute', 1e5, 'lr')
-plot_hyperparams('multimice_impute', 1e5, 'weight_decay')
+plot_hyperparams('mice_impute', 1e5, 'mlp_depth')
+plot_hyperparams('mice_impute', 1e5, 'width_factor')
+plot_hyperparams('mice_impute', 1e5, 'lr')
+plot_hyperparams('mice_impute', 1e5, 'weight_decay')
 
 plot_hyperparams('neumiss', 1e5, 'mlp_depth')
 plot_hyperparams('neumiss', 1e5, 'width_factor')
 plot_hyperparams('neumiss', 1e5, 'lr')
 plot_hyperparams('neumiss', 1e5, 'weight_decay')
 
-plot_hyperparams('neumice', 1e5, 'mlp_depth')
-plot_hyperparams('neumice', 1e5, 'width_factor')
-plot_hyperparams('neumice', 1e5, 'lr')
-plot_hyperparams('neumice', 1e5, 'weight_decay')
+plot_hyperparams('neumise', 1e5, 'mlp_depth')
+plot_hyperparams('neumise', 1e5, 'width_factor')
+plot_hyperparams('neumise', 1e5, 'lr')
+plot_hyperparams('neumise', 1e5, 'weight_decay')
 
 
 

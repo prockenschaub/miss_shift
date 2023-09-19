@@ -10,28 +10,28 @@ NAMES = {
     'bayes': 'Bayes predictor',
     'bayes_order0': 'Cond. Oracle',
     'prob_bayes': 'Prob. Oracle',
-    'mice_impute_mask': 'ICE + mask',
-    'multimice_impute': 'MICE',
+    'ice_impute_mask': 'ICE + mask',
+    'mice_impute': 'MICE',
     'miwae_cond_mask': 'AE + mask',
     'miwae': 'MIWAE',
     'neumiss': 'NeuMiss',
-    'neumice': 'NeuMISE (ours)',
-    'mice_impute_using_y': 'ICE+Y',
-    'multimice_impute_using_y': 'MICE+Y',
+    'neumise': 'NeuMISE (ours)',
+    'ice_impute_using_y': 'ICE+Y',
+    'mice_impute_using_y': 'MICE+Y',
 }
 
 COLORS = {
     'bayes': '#949494',
     'bayes_order0': '#fbafe4',
     'prob_bayes': '#cc78bc',
-    'mice_impute_mask': '#56b4e9',
-    'multimice_impute': '#0173b2',
+    'ice_impute_mask': '#56b4e9',
+    'mice_impute': '#0173b2',
     'miwae_cond_mask': '#ece133',
     'miwae': '#029e73',
     'neumiss': '#de8f05',
-    'neumice': '#d55e00',
-    'mice_impute_using_y': '#306582',
-    'multimice_impute_using_y': '#013f61',
+    'neumise': '#d55e00',
+    'ice_impute_using_y': '#306582',
+    'mice_impute_using_y': '#013f61',
 }
 
 
