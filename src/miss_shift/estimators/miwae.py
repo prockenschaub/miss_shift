@@ -10,7 +10,29 @@ from ..networks.miwae import MIWAE
 from ..networks.mlp import MLP_reg
 
 class MIWAEMLP(BaseEstimator):
-    def __init__(self, input_size, encoder_width, latent_size, K=20, n_draws=5, add_mask=False, mode='joint', save_dir='tmp', device='cpu', **mlp_params):
+    """Imputes with MIWAE and then runs an MLP on the imputed data.
+
+    Args:
+        input_size: number of covariates
+        encoder_width: size of the intermediate layers of the autoencoder
+        latent_size: size of the latent space
+        K: number of samples to draw during training
+        n_draws: number of imputations to draw during inference
+        add_mask: whether or not to concatenate the mask with the data
+        mode: training mode. If 'joint', MIWAE and the MLP are trained together. 
+            However, this is computationally intensive, since for each MLP
+            configuration, a new MIWAE must be trained. Since the same MIWAE may 
+            be used for different MLP configurations, we can also train MIWAE 
+            separately and then mix and match. One can do so via 'imputer-only'
+            or 'predictor-only'. Defaults to 'joint'.
+        save_dir: if mode == 'imputer-only', file path where to store the pretrained
+            MIWAE model
+        device: device on which to train. Defaults to 'cpu'.
+        mlp_params: the dictionary containing the parameters for the MLP
+    """
+    def __init__(self, input_size: int, encoder_width: int, latent_size: int, K: int = 20, n_draws: int = 5,
+                 add_mask: bool = False, mode: str = 'joint', save_dir: str = 'tmp', device: str = 'cpu', 
+                 **mlp_params):
         self.input_size = input_size
         self.encoder_width = encoder_width
         self.latent_size = latent_size
@@ -35,6 +57,15 @@ class MIWAEMLP(BaseEstimator):
         self._reg = MLP_reg(is_mask=False, **mlp_params)
 
     def _miwae_loss(self, iota_x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        """Calculate the MIWAE loss used during training
+
+        Args:
+            iota_x: zero-imputed covariates
+            mask: mask indicating the missing values in the covariates
+
+        Returns:
+            loss (negative MIWAE bound)
+        """
         _, logpxobsgivenz, logpz, logq = self._imp(iota_x, mask, self.K)
         neg_bound = -torch.mean(torch.logsumexp(logpxobsgivenz + logpz - logq, 0))
 
@@ -43,6 +74,17 @@ class MIWAEMLP(BaseEstimator):
     def _miwae_impute(
         self, iota_x: torch.Tensor, mask: torch.Tensor, L: int
     ) -> torch.Tensor:
+        """Impute using MIWAE
+
+        Args:
+            iota_x: zero-imputed covariates
+            mask: mask indicating the missing values in the covariates
+            L: number of candidates to draw for imputation, which will be combined 
+                based on their importance weights
+
+        Returns:
+            imputed data
+        """
         batch_size = iota_x.shape[0]
         p = iota_x.shape[1]
         xgivenz, logpxobsgivenz, logpz, logq = self._imp(iota_x, mask, L)
@@ -56,9 +98,24 @@ class MIWAEMLP(BaseEstimator):
         return xm
 
     def _conditional_impute(self, iota_x: torch.Tensor, mask: torch.Tensor):
+        """Impute using AE (i.e., the conditional expectation)
+
+        Args:
+            iota_x: zero-imputed covariates
+            mask: mask indicating the missing values in the covariates
+
+        Returns:
+            imputed data
+        """
         return self._imp(iota_x, mask, 0)
 
-    def _train_imputer(self, X, X_val=None):
+    def _train_imputer(self, X: np.ndarray, X_val: np.ndarray = None):
+        """Training routine for the MIWAE imputer
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+            X_val: optional covariates w/ missingness that are passively imputed. Defaults to None.
+        """
         X = torch.from_numpy(X).float().to(self.device)
         mask = np.isfinite(X.cpu()).bool().to(self.device)
 
@@ -134,9 +191,17 @@ class MIWAEMLP(BaseEstimator):
 
                 self.scheduler.step(loss_val)
 
-        return self
 
-    def concat_mask(self, X, T):
+    def concat_mask(self, X: np.ndarray, T: np.ndarray) -> np.ndarray:
+        """Concatenate the missingness indicators to the imputed covariates
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+            T: imputed (n, d) covariates w/o missingness (or (n, n_draws, d) in the case of MICE)
+
+        Returns:
+            concatenated (n, 2*d) data
+        """
         if self.n_draws > 0:
             # replicate the mask, because T is now of shape [n_samples, n_draws, n_features]
             M = np.isnan(X)
@@ -147,7 +212,15 @@ class MIWAEMLP(BaseEstimator):
             T = np.hstack((T, M))
         return T
 
-    def impute(self, X):
+    def impute(self, X: np.ndarray) -> np.ndarray:
+        """Perform imputation using a trained imputer
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+
+        Returns:
+            imputed (n, d) or (n, n_draws, d) covariates w/o missingness
+        """
         X = torch.from_numpy(X).float().to(self.device)
         mask = np.isfinite(X.cpu()).bool().to(self.device)
         
@@ -155,10 +228,12 @@ class MIWAEMLP(BaseEstimator):
         xhat_0[np.isnan(X.cpu()).bool()] = 0
 
         if self.n_draws == 0:
+            # Perform imputation with the conditional expectation
             with torch.no_grad():
                 xhat_0[~mask] = self._conditional_impute(iota_x=xhat_0, mask=mask)[~mask]
             return xhat_0
         else:
+            # Perform imputation by drawing from the conditional distribution
             T = []
             for _ in range(self.n_draws):
                 with torch.no_grad():
@@ -167,7 +242,15 @@ class MIWAEMLP(BaseEstimator):
                     T.append(xhat.numpy())
             return np.stack(T)
 
-    def fit(self, X, y, X_val=None, y_val=None):
+    def fit(self, X: np.ndarray, y: np.ndarray, X_val: np.ndarray = None, y_val: np.ndarray = None):
+        """First train MIWAE (or load a pretrained model) and then train the MLP
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+            y: original (n, ) outcomes 
+            X_val: optional covariates w/ missingness that are passively imputed. Defaults to None.
+            y_val: optional outcomes that may be used for passively imputed. Defaults to None.
+        """
         if self.mode in ['join', 'imputer-only']:
             self._train_imputer(X, X_val)
             if self.mode == 'imputer-only':
@@ -184,10 +267,18 @@ class MIWAEMLP(BaseEstimator):
                 T_val = self.concat_mask(X_val, T_val)
 
             self._reg.fit(T, y, X_val=T_val, y_val=y_val)
-        
-        return self
 
     def predict(self, X):
+        """Predict the outcome from partially-observed data.
+
+        Note: for MIWAE, the prediction is averaged across the `n_draw`s
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+
+        Returns:
+            predicted outcomes (n, d)
+        """
         T = self.impute(X)
         if self.add_mask:
             T = self.concat_mask(X, T)

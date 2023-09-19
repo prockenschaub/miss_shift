@@ -13,27 +13,19 @@ from ..misc.pytorchtools import EarlyStopping
 from ..networks.neumiss import NeuMissBlock
 
 
-
 class NeuMissMLP(nn.Module):
-    """A NeuMiss block followed by a MLP."""
+    """A NeuMiss block followed by an MLP.
+    
+    Args:
+        n_features : dimension of inputs.
+        neumiss_depth : number of layers in the NeuMiss block.
+        mlp_depth : number of hidden layers in the MLP.
+        mlp_width : width of the MLP. If None take mlp_width=n_features. Default: None.
+        dtype : Pytorch dtype for the parameters. Default: torch.float.    
+    """
 
     def __init__(self, n_features: int, neumiss_depth: int, mlp_depth: int,
-                 mlp_width: int = None, dtype=torch.float) -> None:
-        """
-        Parameters
-        ----------
-        n_features : int
-            Dimension of inputs.
-        neumiss_depth : int
-            Number of layers in the NeuMiss block.
-        mlp_depth : int
-            Number of hidden layers in the MLP.
-        mlp_width : int
-            Width of the MLP. If None take mlp_width=n_features. Default: None.
-        dtype : _dtype
-            Pytorch dtype for the parameters. Default: torch.float.
-
-        """
+                 mlp_width: int = None, dtype=torch.float):
         super().__init__()
         self.n_features = n_features
         self.neumiss_depth = neumiss_depth
@@ -56,68 +48,29 @@ class NeuMissMLP(nn.Module):
         return out.squeeze()
 
 class Neumiss(BaseEstimator):
-    """The Neumiss + MLP neural network
+    """Predict with a Neumiss block followed by an MLP
 
     Parameters
     ----------
-
-    mode: str
-        One of:
-        * 'baseline': The weight matrices for the Neumann iteration are not
-        shared.
-        * 'shared': The weight matrices for the Neumann iteration are shared.
-        * 'shared_accelerated': The weight matrices for the Neumann iteration
-        are shared and one corefficient per residual connection can be learned
-        for acceleration.
-
-    depth: int
-        The depth of the NeuMiss block.
-
-    n_epochs: int
-        The maximum number of epochs.
-
-    batch_size: int
-        The batch size.
-
-    lr: float
-        The learning rate.
-
-    weight_decay: float
-        The weight decay parameter.
-
-    early_stopping: boolean
-        If True, early stopping is used based on the validaton set.
-
-    optimizer: srt
-        One of `sgd`or `adam`.
-
-    residual_connection: boolean
-        If True, the residual connection of the Neumann network are
-        implemented.
-
-    mlp_depth: int
-        The depth of the MLP stacked on top of the Neumann iterations.
-
-    width_factor: int
-        The width of the MLP stacked on top of the NeuMiss layer is calculated
-        as width_factor times n_features.
-
-    init_type: str
-        The type of initialisation for the parameters. Either 'normal',
-        'uniform', or 'custom_normal'. If 'custom_normal', the values provided
-        for the parameter `Sigma`, `mu`, `L` (and `coefs` if accelerated) are
-        used to initialise the Neumann block.
-
-    add_mask: boolean
-        If True, the mask is concatenated to the output of the NeuMiss block.
-
-    verbose: boolean
+    Args:
+        depth: the depth of the NeuMiss block.
+        n_epochs: the maximum number of epochs.
+        batch_size: the batch size.
+        lr: the learning rate.
+        weight_decay: the weight decay parameter.
+        early_stopping: if True, early stopping is used based on the validaton set.
+        optimizer: one of `sgd`or `adam`.
+        mlp_depth: the depth of the MLP stacked on top of the Neumann iterations.
+        width_factor: the width of the MLP stacked on top of the NeuMiss block is calculated
+            as width_factor times n_features.
+        add_mask: if True, the mask is concatenated to the output of the NeuMiss block.
+        verbose: flag to print detailed information about training to the console. 
     """
 
-    def __init__(self, depth, n_epochs=1000, batch_size=100, lr=0.01,
-                 weight_decay=1e-4, early_stopping=False, optimizer='sgd',
-                 mlp_depth=0, width_factor=1,
-                 init_type='normal', add_mask=False, verbose=False):
+    def __init__(self, depth: int, n_epochs: int = 1000, batch_size: int = 100, 
+                 lr: float = 0.01, weight_decay: float = 1e-4, early_stopping: bool = False, 
+                 optimizer: str = 'sgd', mlp_depth: int = 0, width_factor: int = 1,
+                 add_mask: bool = False, verbose: bool = False):
         self.depth = depth
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -127,7 +80,6 @@ class Neumiss(BaseEstimator):
         self.optimizer = optimizer
         self.mlp_depth = mlp_depth
         self.width_factor = width_factor
-        self.init_type = init_type
         self.add_mask = add_mask
         self.verbose = verbose
 
@@ -257,6 +209,14 @@ class Neumiss(BaseEstimator):
             self.net.load_state_dict(early_stopping.checkpoint)
 
     def predict(self, X):
+        """Predict the outcome from partially-observed data.
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+
+        Returns:
+            predicted outcomes (n, d)
+        """
         X = torch.as_tensor(X, dtype=torch.double)
 
         with torch.no_grad():

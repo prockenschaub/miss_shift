@@ -55,7 +55,7 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, t
         est = MIWAEMLP
     elif 'oracle_impute' in method:
         est = OracleImputeMLP
-    elif ('mean_impute' in method) or ('mice_impute' in method)  or ('multimice_impute' in method):
+    elif ('mean_impute' in method) or ('ice_impute' in method)  or ('mice_impute' in method):
         est = ImputeMLP
     elif 'gbrt' in method:
         est = HistGradientBoostingRegressor

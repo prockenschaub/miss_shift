@@ -7,23 +7,17 @@ from ..networks.mlp import MLP_reg
 from ..misc.iterativeimputer import FastIterativeImputer
 
 class ImputeMLP(BaseEstimator):
-    """Imputes and then runs a MLP (Pytorch based, same as for NeuMiss)
-    on the imputed data.
+    """Imputes with mean or iterative imputation and then runs an MLP on the imputed data.
 
-    Parameters
-    ----------
-
-    add_mask: bool
-        Whether or not to concatenate the mask with the data.
-
-    imputation_type: str
-        One of 'mean' or 'MICE'.
-
-    est_params: dict
-        The dictionary containing the parameters for the MLP.
+    Args:
+        add_mask: whether or not to concatenate the mask with the data
+        imputation_type: one of 'mean', 'ICE', or 'MICE'
+        n_draws: number of imputations to draw (only relevant for MICE)
+        use_y_for_impute: should the outcome be used for imputation (only relevant for ICE and MICE)
+        verbose: flag to print detailed information about training to the console. 
+        mlp_params: the dictionary containing the parameters for the MLP
     """
-
-    def __init__(self, add_mask, imputation_type, n_draws=5, use_y_for_impute=False, verbose=False, **mlp_params):
+    def __init__(self, add_mask: bool, imputation_type: str, n_draws=5, use_y_for_impute=False, verbose=False, **mlp_params):
 
         self.add_mask = add_mask
         self.imputation_type = imputation_type
@@ -33,15 +27,24 @@ class ImputeMLP(BaseEstimator):
 
         if self.imputation_type == 'mean':
             self._imp = SimpleImputer(missing_values=np.nan, strategy='mean')
-        elif self.imputation_type == 'MICE':
+        elif self.imputation_type == 'ICE':
             self._imp = IterativeImputer(random_state=0, verbose=2*int(verbose))
-        elif self.imputation_type == 'MultiMICE':
+        elif self.imputation_type == 'MICE':
             self._imp = FastIterativeImputer(random_state=0, sample_posterior=True, max_iter=5, verbose=2*int(verbose))
 
         self._reg = MLP_reg(is_mask=add_mask, verbose=verbose, **self.mlp_params)
 
-    def concat_mask(self, X, T):
-        if self.imputation_type == 'MultiMICE':
+    def concat_mask(self, X: np.ndarray, T: np.ndarray) -> np.ndarray:
+        """Concatenate the missingness indicators to the imputed covariates
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+            T: imputed (n, d) covariates w/o missingness (or (n, n_draws, d) in the case of MICE)
+
+        Returns:
+            concatenated (n, 2*d) data
+        """
+        if self.imputation_type == 'MICE':
             # replicate the mask, because T is now of shape [n_samples, n_draws, n_features]
             M = np.isnan(X)
             M = np.repeat(M, self.n_draws, axis=0).reshape(T.shape)
@@ -51,8 +54,16 @@ class ImputeMLP(BaseEstimator):
             T = np.hstack((T, M))
         return T
 
-    def impute(self, X):
-        if self.imputation_type == 'MultiMICE':
+    def impute(self, X: np.ndarray) -> np.ndarray:
+        """Perform imputation using a trained imputer
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+
+        Returns:
+            imputed (n, d) or (n, n_draws, d) covariates w/o missingness
+        """
+        if self.imputation_type == 'MICE':
             T = []
             for _ in range(self.n_draws):
                 T.append(self._imp.transform(X))
@@ -60,7 +71,15 @@ class ImputeMLP(BaseEstimator):
         else:
             return self._imp.transform(X)
 
-    def fit(self, X, y, X_val=None, y_val=None):
+    def fit(self, X: np.ndarray, y: np.ndarray, X_val: np.ndarray = None, y_val: np.ndarray = None):
+        """First train the imputer and then the MLP
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+            y: original (n, ) outcomes 
+            X_val: optional covariates w/ missingness that are passively imputed. Defaults to None.
+            y_val: optional outcomes that may be used for passively imputed. Defaults to None.
+        """
         if self.use_y_for_impute:
             # Add the outcome to the dataset to use it during imputation
             X = np.c_[X, y]
@@ -87,9 +106,17 @@ class ImputeMLP(BaseEstimator):
             # finally, refit the imputation for prediction at test time
             self._imp.fit(X) 
 
-        return self
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Predict the outcome from partially-observed data.
 
-    def predict(self, X):
+        Note: for MICE, the prediction is averaged across the `n_draw`s
+
+        Args:
+            X: original (n, d) covariates w/ missingness
+
+        Returns:
+            predicted outcomes (n, d)
+        """
         T = self.impute(X)
         if self.add_mask:
             T = self.concat_mask(X, T)
