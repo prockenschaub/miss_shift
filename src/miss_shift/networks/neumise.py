@@ -57,12 +57,12 @@ class SkipConnection(nn.Module):
         return input + self.value
 
 
-class NeuMICEBlock(nn.Module):
-    """A single NeuMICE block that is applied to the data multiple times
+class NeuMISEBlock(nn.Module):
+    """A single NeuMISE block that is applied to the data multiple times
 
     Args:
-        n_features : dimension of inputs and outputs of the NeuMICE block.
-        depth : number of layers (iterations) in the NeuMICE block.
+        n_features : dimension of inputs and outputs of the NeuMISE block.
+        depth : number of layers (iterations) in the NeuMISE block.
         dtype : Pytorch dtype for the parameters. Default: torch.float.
     """
     def __init__(self, n_features: int, depth: int, dtype = torch.float):
@@ -89,8 +89,8 @@ class NeuMICEBlock(nn.Module):
         skip = SkipConnection(x)# Initialize skip connection with this value
 
         s0 = self.init(x)       # Choose initial "imputations"
-        layer = [self.norm, self.linear, mask, skip]  # One NeuMICE iteration
-        layers = Sequential(*(layer*self.depth))      # Several NeuMICE iterations = 1 block
+        layer = [self.norm, self.linear, mask, skip]  # One NeuMISE iteration
+        layers = Sequential(*(layer*self.depth))      # Several NeuMISE iterations = 1 block
 
         return layers(s0)
 

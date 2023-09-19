@@ -10,25 +10,25 @@ import numpy as np
 from sklearn.base import BaseEstimator
 
 from ..misc.pytorchtools import EarlyStopping
-from ..networks.neumice import NeuMICEBlock
+from ..networks.neumise import NeuMISEBlock
 
 
-class NeuMICEMLP(nn.Module):
-    """A NeuMICE block followed by an MLP.
+class NeuMISEMLP(nn.Module):
+    """A NeuMISE block followed by an MLP.
     
     Args:
         n_features : dimension of inputs.
-        neumice_depth : number of layers in the NeuMICE block.
+        neumise_depth : number of layers in the NeuMISE block.
         mlp_depth : number of hidden layers in the MLP.
         mlp_width : width of the MLP. If None take mlp_width=n_features. Default: None.
         dtype : Pytorch dtype for the parameters. Default: torch.float.    
     """
 
-    def __init__(self, n_features: int, neumice_depth: int, mlp_depth: int,
+    def __init__(self, n_features: int, neumise_depth: int, mlp_depth: int,
                  mlp_width: int = None, dtype = torch.float):
         super().__init__()
         self.n_features = n_features
-        self.neumice_depth = neumice_depth
+        self.neumise_depth = neumise_depth
         self.mlp_depth = mlp_depth
         self.dtype = dtype
         mlp_width = n_features if mlp_width is None else mlp_width
@@ -37,7 +37,7 @@ class NeuMICEMLP(nn.Module):
         b = int(mlp_depth >= 1)
         last_layer_width = mlp_width if b else n_features
         self.layers = Sequential(
-            NeuMICEBlock(n_features, neumice_depth, dtype),
+            NeuMISEBlock(n_features, neumise_depth, dtype),
             *[Linear(n_features, mlp_width, dtype=dtype), ReLU()]*b,
             *[Linear(mlp_width, mlp_width, dtype=dtype), ReLU()]*b*(mlp_depth-1),
             *[Linear(last_layer_width, 1, dtype=dtype)],
@@ -47,21 +47,21 @@ class NeuMICEMLP(nn.Module):
         out = self.layers(x)
         return out.squeeze()
 
-class NeuMICE(BaseEstimator):
-    """Predict with a NeuMICE block followed by an MLP.
+class NeuMISE(BaseEstimator):
+    """Predict with a NeuMISE block followed by an MLP.
 
     Args:
-        depth: the depth of the NeuMICE block.
+        depth: the depth of the NeuMISE block.
         n_epochs: the maximum number of epochs.
         batch_size: the batch size.
         lr: the learning rate.
         weight_decay: the weight decay parameter.
         early_stopping: if True, early stopping is used based on the validaton set.
         optimizer: one of `sgd`or `adam`.
-        mlp_depth: the depth of the MLP stacked on top of the NeuMICE iterations.
-        width_factor: the width of the MLP stacked on top of the NeuMICE block is calculated
+        mlp_depth: the depth of the MLP stacked on top of the NeuMISE iterations.
+        width_factor: the width of the MLP stacked on top of the NeuMISE block is calculated
             as width_factor times n_features.
-        add_mask: if True, the mask is concatenated to the output of the NeuMICE block.
+        add_mask: if True, the mask is concatenated to the output of the NeuMISE block.
         verbose: flag to print detailed information about training to the console. 
     """
 
@@ -87,7 +87,7 @@ class NeuMICE(BaseEstimator):
         self.mse_val = []
 
     def fit(self, X: np.ndarray, y: np.ndarray, X_val: np.ndarray = None, y_val: np.ndarray = None):
-        """Jointly train the NeuMICE block and the MLP
+        """Jointly train the NeuMISE block and the MLP
 
         Args:
             X: original (n, d) covariates w/ missingness
@@ -104,8 +104,8 @@ class NeuMICE(BaseEstimator):
             X_val = torch.as_tensor(X_val, dtype=torch.double)
             y_val = torch.as_tensor(y_val, dtype=torch.double)
 
-        self.net = NeuMICEMLP(n_features=n_features,
-                           neumice_depth=self.depth,
+        self.net = NeuMISEMLP(n_features=n_features,
+                           neumise_depth=self.depth,
                            mlp_depth=self.mlp_depth,
                            mlp_width=self.width_factor, 
                            dtype=torch.double)

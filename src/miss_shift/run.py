@@ -7,7 +7,7 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 
 from .data.generation import gen_params, gen_data
 from .estimators.neumiss import Neumiss
-from .estimators.neumice import NeuMICE
+from .estimators.neumise import NeuMISE
 from .estimators.conditional_impute import ImputeMLP
 from .estimators.miwae import MIWAEMLP
 from .oracles.conditional import BayesPredictor_GSM_nonlinear, BayesPredictor_MCAR_MAR_nonlinear
@@ -67,8 +67,8 @@ def run_one(data_desc: dict, method: str, method_params: dict, it: int,
             raise ValueError(f'No probabilistic Bayes predictor has been implemented for {mdm}.')
     elif 'neumiss' in method:
         est = Neumiss
-    elif 'neumice' in method:
-        est = NeuMICE
+    elif 'neumise' in method:
+        est = NeuMISE
     elif "miwae" in method:
         est = MIWAEMLP
     elif ('mean_impute' in method) or ('ice_impute' in method)  or ('mice_impute' in method):
