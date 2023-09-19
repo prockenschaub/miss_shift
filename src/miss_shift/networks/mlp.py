@@ -9,11 +9,19 @@ import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+from typing import List
+
 from ..misc.pytorchtools import EarlyStopping
 
 
 class Mlp(nn.Module):
-    def __init__(self, layer_sizes, init_type):
+    """Multi-layers perceptron
+
+    Args:
+        layer_sizes: the size of each layer of the MLP, including the input and output layer
+        init_type: how to initialise the weights. One of 'normal' or 'uniform'. 
+    """
+    def __init__(self, layer_sizes: List[int], init_type: str):
         super().__init__()
         self.relu = nn.ReLU()
 
@@ -52,12 +60,11 @@ class Mlp(nn.Module):
         for i, b_mlp in enumerate(self.l_b_mlp):
             self.register_parameter('b_mlp_{}'.format(i), b_mlp)
 
-    def forward(self, x, phase='train'):
+    def forward(self, x: torch.Tensor, phase: str = 'train') -> torch.Tensor:
         """
-        Parameters:
-        ----------
-        x: tensor, shape (batch_size, (2x)n_features)
-            The input data imputed (with the mask concatenated).
+        Args:
+            x: the (n, d) input data without missingness.
+            phase: not used but left for legacy issues
         """
         n_layers = len(self.l_W_mlp)
 
@@ -71,47 +78,25 @@ class Mlp(nn.Module):
 
 
 class MLP_reg(RegressorMixin):
+    """An MLP regression including its training routine
+
+    Args:
+        width_factor: the width of the MLP is given by `width_factor` times the number of features.
+        n_epochs: the maximum number of epochs.
+        batch_size: the batch size.
+        lr: the learning rate.
+        weight_decay: the weight decay parameter.
+        early_stopping: if True, early stopping is used based on the validaton set.
+        optimizer: one of `sgd`or `adam`.
+        mlp_depth: the depth of the MLP.
+        init_type: the type of initialisation for the parameters. Either 'normal', 'uniform'.
+        verbose: flag to print detailed information about training to the console. 
     """
 
-    Parameters
-    ----------
-
-    width_factor: int
-        The width of the MLP is given by `width_factor` times the number of
-        features.
-
-    n_epochs: int
-        The maximum number of epochs.
-
-    batch_size: int
-        The batch size.
-
-    lr: float
-        The learning rate.
-
-    weight_decay: float
-        The weight decay parameter.
-
-    early_stopping: boolean
-        If True, early stopping is used based on the validaton set.
-
-    optimizer: str
-        One of `sgd`or `adam`.
-
-    mlp_depth: int
-        The depth of the MLP.
-
-    init_type: str
-        The type of initialisation for the parameters. Either 'normal',
-        'uniform'.
-
-    verbose: boolean
-    """
-
-    def __init__(self, width_factor=1, n_epochs=1000, batch_size=100, lr=0.01,
-                 weight_decay=1e-4, early_stopping=False, optimizer='sgd',
-                 mlp_depth=0, init_type='normal', is_mask=False,
-                 verbose=False):
+    def __init__(self, width_factor: int = 1, n_epochs: int = 1000, batch_size: int = 100, 
+                 lr: float = 0.01, weight_decay: float = 1e-4, early_stopping: bool = False, 
+                 optimizer: str = 'sgd', mlp_depth: int = 0, init_type: str = 'normal', 
+                 is_mask: bool = False, verbose: bool = False):
         self.width_factor = width_factor
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -129,7 +114,15 @@ class MLP_reg(RegressorMixin):
         self.r2_val = []
         self.mse_val = []
 
-    def fit(self, X, y, X_val=None, y_val=None):
+    def fit(self, X: np.ndarray, y: np.ndarray, X_val: np.ndarray | None = None, y_val: np.ndarray | None = None):
+        """Training routine for the MLP
+
+        Args:
+            X: covariate data
+            y: outcome
+            X_val: Optional validation covariates for early stopping. Defaults to None.
+            y_val: Optional validation outcomes for early stopping. Defaults to None.
+        """
         multi_impute = True if len(X.shape) == 3 else False
 
         if multi_impute:
@@ -253,7 +246,15 @@ class MLP_reg(RegressorMixin):
         if self.early_stop and early_stopping.early_stop:
             self.net.load_state_dict(early_stopping.checkpoint)
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Predict using the trained MLP
+
+        Args:
+            X: covariates for which to predict the outcome
+
+        Returns:
+            predicted outcomes
+        """
         multi_impute = True if len(X.shape) == 3 else False
 
         if multi_impute:

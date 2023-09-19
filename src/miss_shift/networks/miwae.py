@@ -1,3 +1,7 @@
+'''This file implements the MIWAE algorithm. It was inspired from
+https://github.com/pamattei/miwae/blob/master/Pytorch%20notebooks/MIWAE_Pytorch_exercises_demo_ProbAI.ipynb
+'''
+
 import torch
 from torch import nn
 import torch.distributions as td
@@ -9,7 +13,14 @@ def weights_init(layer) -> None:
 
 
 class MIWAE(nn.Module):
-    def __init__(self, n_inputs, width, latent_size, *args, **kwargs) -> None:
+    """Missing data importance-weighted autoencoder
+
+    Args: 
+        n_inputs: number of covariates
+        width: size of the intermediate layers of the autoencoder
+        latent_size: size of the latent space
+    """
+    def __init__(self, n_inputs: int, width: int, latent_size: int, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.n_inputs = n_inputs
@@ -46,7 +57,19 @@ class MIWAE(nn.Module):
         self.encoder.apply(weights_init)
         self.decoder.apply(weights_init)
 
-    def forward(self, iota_x, mask, L):
+    def forward(self, iota_x: torch.Tensor, mask: torch.Tensor, L: int) -> torch.Tensor | tuple:
+        """_summary_
+
+        Args:
+            iota_x: zero-filled input data `x` of shape (n, d)
+            mask: missingness mask of shape (n, d)
+            L: number of samples to draw per row in `iota_x`
+
+        Returns:
+            If L == 0: the predicted means of `x`
+            If L > 0: a tuple with the distribution of `x` conditional on `z`, the log probability of 
+                `x_obs` conditional on `z`, the log probability of `z`, and log q of `z` given `x_obs` 
+        """
         out_encoder = self.encoder(iota_x)
         
         if L > 0:
