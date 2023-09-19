@@ -8,7 +8,6 @@ from .data.generation import gen_params, gen_data
 from .estimators.neumiss import Neumiss
 from .estimators.neumice import NeuMICE
 from .estimators.conditional_impute import ImputeMLP
-from .estimators.oracle_impute import OracleImputeMLP
 from .estimators.miwae import MIWAEMLP
 from .oracles.conditional import BayesPredictor_GSM_nonlinear, BayesPredictor_MCAR_MAR_nonlinear
 from .oracles.probabilistic import ProbabilisticBayesPredictor
@@ -53,8 +52,6 @@ def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, t
         est = NeuMICE
     elif "miwae" in method:
         est = MIWAEMLP
-    elif 'oracle_impute' in method:
-        est = OracleImputeMLP
     elif ('mean_impute' in method) or ('ice_impute' in method)  or ('mice_impute' in method):
         est = ImputeMLP
     elif 'gbrt' in method:
