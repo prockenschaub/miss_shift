@@ -15,6 +15,8 @@ class FastIterativeImputer(IterativeImputer):
                             neighbor_feat_idx,
                             estimator=None,
                             fit_mode=True):
+        """See `IterativeImputer` for a detailed documentation
+        """
         
         if estimator is None and fit_mode is False:
             raise ValueError("If fit_mode is False, then an already-fitted "

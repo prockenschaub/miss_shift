@@ -4,24 +4,19 @@ https://github.com/Bjarten/early-stopping-pytorch/blob/master/pytorchtools.py'''
 import numpy as np
 from copy import deepcopy
 
+import torch
+from torch import nn
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a
-    given patience."""
-    def __init__(self, patience=12, verbose=False, delta=1e-4):
-        """
-        Parameters
-        -----------
-        patience: int (default: 10)
-            How long to wait after last time validation loss improved.
-
-        verbose: bool (default: False)
-            If True, prints a message for each validation loss improvement.
-
-        delta: float (default: 1e-4)
-            Minimum change in the monitored quantity to qualify as an
-            improvement.
-        """
+    given patience.
+    
+    Args:
+        patience: how long to wait after last time validation loss improved. Defaults to 10.
+        verbose: if True, prints a message for each validation loss improvement. Defaults to False.
+        delta: minimum change in the monitored quantity to qualify as an improvement. Defaults to 1e-4.
+    """
+    def __init__(self, patience: int = 12, verbose: bool = False, delta: float = 1e-4):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -31,8 +26,13 @@ class EarlyStopping:
         self.delta = delta
         self.checkpoint = None
 
-    def __call__(self, val_loss, model):
+    def __call__(self, val_loss: torch.Tensor, model: nn.Module):
+        """Perform a check for early stopping
 
+        Args:
+            val_loss: validation loss
+            model: model that is being trained
+        """
         score = -val_loss
 
         if self.best_score is None:
@@ -49,10 +49,7 @@ class EarlyStopping:
             self.save_checkpoint(val_loss, model)
             self.counter = 0
 
-    def save_checkpoint(self, val_loss, model):
-        '''Saves model when validation loss decrease.'''
-        # if self.verbose:
-        #     print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
-        # torch.save(model.state_dict(), 'checkpoint.pt')
+    def save_checkpoint(self, val_loss: torch.Tensor, model: nn.Module):
+        """Save the model"""
         self.checkpoint = deepcopy(model.state_dict())
         self.val_loss_min = val_loss
