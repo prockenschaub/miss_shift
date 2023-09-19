@@ -30,8 +30,10 @@ Run the following commands in a terminal to clone this repo and create the Conda
 ```bash
 git clone https://github.com/prockenschaub/miss_shift.git
 cd miss_shift/
+
 conda env create -f environment.yml
 conda activate miss_shift
+pip install -e .
 ```
 
 All experiments were run using Python 3.9.12 on an Apple M1 Max with Ventura 13.2.1 and on a Linux HPC cluster. 
