@@ -1,8 +1,9 @@
 '''
-Defines:
- - the paramaters of data simulations, 
- - the list of methods to compare and their hyperparameters,
-And launches all experiments.
+Script to run one experiment for one or more models. This script
+ - defines the paramaters of the data simulation, 
+ - defines the list of methods to compare and their hyperparameters, 
+ - launches the experiments in a parallel fashion using joblib
+ - collects and stores the results.
 '''
 from collections import namedtuple
 import os
@@ -17,7 +18,15 @@ import pandas as pd
 from miss_shift.run import run_one
 
 
-def configure_runs(method, method_args):
+def configure_runs(method_args: dict) -> pd.DataFrame:
+    """Explode the hyperparameter grid
+
+    Args:
+        method_args: hyperparameters/model arguments
+
+    Returns:
+        a dataframe with all combinations
+    """
     method_params = pd.DataFrame([method_args])
     for v in method_params.columns:
         method_params = method_params.explode(v)
@@ -42,6 +51,11 @@ ResultItem.__new__.__defaults__ = (np.nan, )*len(ResultItem._fields)
 
 
 def launch(args):
+    """Launch the experiments
+
+    Args:
+        args: command line arguments
+    """
     # Load the experiment definition
     file_path = f"experiments/{args.experiment}.yaml"
     if not os.path.exists(file_path):
@@ -94,7 +108,7 @@ def launch(args):
 
     for estimator_name in estimators:
         estimator_params = experiment['estimators'][estimator_name]
-        methods_params[estimator_name] = configure_runs(estimator_name, estimator_params)
+        methods_params[estimator_name] = configure_runs(estimator_params)
 
 
     # Create output directory

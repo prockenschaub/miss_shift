@@ -1,5 +1,6 @@
 from copy import deepcopy
 import os
+from typing import List
 
 import torch
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -14,8 +15,26 @@ from .oracles.probabilistic import ProbabilisticBayesPredictor
 
 
 
-def run_one(data_desc, method, method_params, it, n_train, n_test, n_val, mdm, tmp_dir='tmp'):
+def run_one(data_desc: dict, method: str, method_params: dict, it: int, 
+            n_train: List[int], n_test: int, n_val: int, mdm: str, tmp_dir: str = 'tmp') -> List[dict]:
+    """Run a single experiment, i.e., a single estimator for a given set of data and hyperparameters. 
 
+    Note: a single run may include multiple data sizes. 
+
+    Args:
+        data_desc: parameters describing the data generation.
+        method: method/estimator to use.
+        method_params: hyperparameters of the method.
+        it: number of the current trial.
+        n_train: list of one or more training sample sizes in increasing order.
+        n_test: number of training samples.
+        n_val: number of validation samples.
+        mdm: missing data mechanism. One of "MCAR", "MAR_monotone_logistic", "MAR_on_y", or "gaussian_sm".
+        tmp_dir: path to a directory used to store temporary data. Defaults to 'tmp'.
+
+    Returns:
+        performance summary including R2 and MSE
+    """
     if not isinstance(n_train, list):
         n_train = [n_train]
     n_tot = [n_train + n_test + n_val for n_train in n_train]
