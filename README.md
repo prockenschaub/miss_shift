@@ -44,8 +44,8 @@ All experiments were run using Python 3.9.12 on an Apple M1 Max with Ventura 13.
 Running the experiments is just as easy. Again in a terminal, run the following command to replicate the results for conditional oracles on MAR data reported in the paper:  
 
 ```bash
-python scripts/launch_experiment.py more_miss mar bayes --data simulated --link stairs
-python scripts/launch_experiment.py less_miss mar bayes --data simulated --link stairs
+python scripts/launch_experiment.py more_miss mcar bayes --data simulated --link stairs
+python scripts/launch_experiment.py less_miss mcar bayes --data simulated --link stairs
 ```
 
 This runs two experiments: one where missingness is 25% in the source environment and 50% in the target environment (`more_miss`) and one where missingness is 50% in the source environment and 25% in the target environment (`less_miss`). Together, these two experiments allow to create the result displayed in Figure 2, with the no shift performance taken from `more_miss` and the shift performance taken from `less_miss`.
@@ -53,8 +53,8 @@ This runs two experiments: one where missingness is 25% in the source environmen
 To run all estimators reported in the paper, just use `all`:
 
 ```bash
-python scripts/launch_experiment.py more_miss mar all --data simulated --link stairs
-python scripts/launch_experiment.py less_miss mar all --data simulated --link stairs
+python scripts/launch_experiment.py more_miss mcar all --data simulated --link stairs
+python scripts/launch_experiment.py less_miss mcar all --data simulated --link stairs
 ```
 
 All experiment results will be saved in `results/[EXPERIMENT_NAME]/[DATA]/[LINK]`.
