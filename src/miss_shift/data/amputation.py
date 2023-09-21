@@ -1,7 +1,7 @@
-'''This file implements amputation procedures according to various missing
+"""This file implements amputation procedures according to various missing
 data mechanisms. It was inspired from
 https://github.com/BorisMuzellec/MissingDataOT/blob/master/utils.py
-'''
+"""
 
 import numpy as np
 from sklearn.utils import check_random_state
@@ -15,20 +15,22 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-def MCAR(X: np.ndarray, p: float, random_state: None | int | np.random.RandomState = None) -> np.ndarray:
+def MCAR(
+    X: np.ndarray, p: float, random_state: None | int | np.random.RandomState = None
+) -> np.ndarray:
     """
     Simulate missingness according to a missing completely at random (MCAR) mechanism.
-    
+
     Args:
         X: data for which missing values will be simulated.
         p: proportion of missing values to generate for variables which will have
         missing values.
-        random_state: 
+        random_state:
             If int, random_state is the seed used by the random number generator;
             If RandomState instance, random_state is the random number generator;
             If None, the random number generator is the RandomState instance used
             by `np.random`.
-    
+
     Returns:
         mask: boolean mask of generated missing values (True if the value is missing).
     """
@@ -44,25 +46,31 @@ def MCAR(X: np.ndarray, p: float, random_state: None | int | np.random.RandomSta
     return mask
 
 
-def MAR_logistic(X: np.ndarray, p: float, p_obs: float, random_state: None | int | np.random.RandomState = None, sample_vars: bool = True) -> np.ndarray:
+def MAR_logistic(
+    X: np.ndarray,
+    p: float,
+    p_obs: float,
+    random_state: None | int | np.random.RandomState = None,
+    sample_vars: bool = True,
+) -> np.ndarray:
     """
-    Simulate missingness according to a missing at random mechanism with a logistic masking model. 
+    Simulate missingness according to a missing at random mechanism with a logistic masking model.
     First, a subset of variables with *no* missing values is randomly selected. The remaining
-    variables have missing values according to a logistic model with random weights, re-scaled so 
+    variables have missing values according to a logistic model with random weights, re-scaled so
     as to attain the desired proportion of missing values on those variables.
-    
+
     Args:
         X: data for which missing values will be simulated.
         p: proportion of missing values to generate for variables which will have
             missing values.
         p_obs: proportion of variables with *no* missing values that will be used for
             the logistic masking model.
-        random_state: 
+        random_state:
             If int, random_state is the seed used by the random number generator;
             If RandomState instance, random_state is the random number generator;
             If None, the random number generator is the RandomState instance used
             by `np.random`.
-    
+
     Returns:
         mask: boolean mask of generated missing values (True if the value is missing).
     """
@@ -81,7 +89,7 @@ def MAR_logistic(X: np.ndarray, p: float, p_obs: float, random_state: None | int
     if sample_vars:
         idxs_obs = rng.choice(d, d_obs, replace=False)
         idxs_nas = np.array([i for i in range(d) if i not in idxs_obs])
-    else: 
+    else:
         idxs_obs = np.arange(d_obs)
         idxs_nas = np.arange(d_obs, d)
 
@@ -89,13 +97,12 @@ def MAR_logistic(X: np.ndarray, p: float, p_obs: float, random_state: None | int
     # variables, through a logistic model. The parameters of this logistic
     # model are random, and adapted to the scale of each variable.
     mu = X.mean(0)
-    cov = (X-mu).T.dot(X-mu)/n
+    cov = (X - mu).T.dot(X - mu) / n
     cov_obs = cov[np.ix_(idxs_obs, idxs_obs)]
     coeffs = rng.randn(d_obs, d_na)
-    v = np.array([coeffs[:, j].dot(cov_obs).dot(
-        coeffs[:, j]) for j in range(d_na)])
+    v = np.array([coeffs[:, j].dot(cov_obs).dot(coeffs[:, j]) for j in range(d_na)])
     steepness = rng.uniform(low=0.1, high=0.5, size=d_na)
-    coeffs /= steepness*np.sqrt(v)
+    coeffs /= steepness * np.sqrt(v)
 
     # Move the intercept to have the desired amount of missing values
     intercepts = np.zeros((d_na))
@@ -116,25 +123,31 @@ def MAR_logistic(X: np.ndarray, p: float, p_obs: float, random_state: None | int
     return mask
 
 
-def MAR_monotone_logistic(X: np.ndarray, p: float, p_obs: float, random_state: None | int | np.random.RandomState = None, sample_vars: bool = True) -> np.ndarray:
+def MAR_monotone_logistic(
+    X: np.ndarray,
+    p: float,
+    p_obs: float,
+    random_state: None | int | np.random.RandomState = None,
+    sample_vars: bool = True,
+) -> np.ndarray:
     """
-    Simulate missingness according to a monotone missing at random mechanism with a logistic masking model. 
+    Simulate missingness according to a monotone missing at random mechanism with a logistic masking model.
     First, a subset of variables with *no* missing values is masked via MCAR. The remaining
-    variables have missing values according to a logistic model with random weights, re-scaled so 
+    variables have missing values according to a logistic model with random weights, re-scaled so
     as to attain the desired proportion of missing values on those variables.
-    
+
     Args:
         X: data for which missing values will be simulated.
         p: proportion of missing values to generate for variables which will have
             missing values.
         p_obs: proportion of variables with *no* missing values that will be used for
             the logistic masking model.
-        random_state: 
+        random_state:
             If int, random_state is the seed used by the random number generator;
             If RandomState instance, random_state is the random number generator;
             If None, the random number generator is the RandomState instance used
             by `np.random`.
-    
+
     Returns:
         mask: boolean mask of generated missing values (True if the value is missing).
     """
@@ -154,7 +167,7 @@ def MAR_monotone_logistic(X: np.ndarray, p: float, p_obs: float, random_state: N
     if sample_vars:
         idxs_obs = rng.choice(d, d_obs, replace=False)
         idxs_nas = np.array([i for i in range(d) if i not in idxs_obs])
-    else: 
+    else:
         idxs_obs = np.arange(d_obs)
         idxs_nas = np.arange(d_obs, d)
 
@@ -165,13 +178,12 @@ def MAR_monotone_logistic(X: np.ndarray, p: float, p_obs: float, random_state: N
     # variables, through a logistic model. The parameters of this logistic
     # model are random, and adapted to the scale of each variable.
     mu = X.mean(0)
-    cov = (X-mu).T.dot(X-mu)/n
+    cov = (X - mu).T.dot(X - mu) / n
     cov_obs = cov[np.ix_(idxs_obs, idxs_obs)]
     coeffs = rng.randn(d_obs, d_na)
-    v = np.array([coeffs[:, j].dot(cov_obs).dot(
-        coeffs[:, j]) for j in range(d_na)])
+    v = np.array([coeffs[:, j].dot(cov_obs).dot(coeffs[:, j]) for j in range(d_na)])
     steepness = rng.uniform(low=0.1, high=0.5, size=d_na)
-    coeffs /= steepness*np.sqrt(v)
+    coeffs /= steepness * np.sqrt(v)
 
     # Move the intercept to have the desired amount of missing values
     Xpartial = X.copy()
@@ -194,22 +206,27 @@ def MAR_monotone_logistic(X: np.ndarray, p: float, p_obs: float, random_state: N
     return mask
 
 
-def MAR_on_y(X: np.ndarray, y: np.ndarray, p: float, random_state: None | int | np.random.RandomState = None) -> np.ndarray:
+def MAR_on_y(
+    X: np.ndarray,
+    y: np.ndarray,
+    p: float,
+    random_state: None | int | np.random.RandomState = None,
+) -> np.ndarray:
     """
-    Simulate missingness according to a missing at random mechanism depending on y through a logistic masking model. 
-    
+    Simulate missingness according to a missing at random mechanism depending on y through a logistic masking model.
+
     Args:
         X: data for which missing values will be simulated.
         p: proportion of missing values to generate for variables which will have
             missing values.
         p_obs: proportion of variables with *no* missing values that will be used for
             the logistic masking model.
-        random_state: 
+        random_state:
             If int, random_state is the seed used by the random number generator;
             If RandomState instance, random_state is the random number generator;
             If None, the random number generator is the RandomState instance used
             by `np.random`.
-    
+
     Returns:
         mask: boolean mask of generated missing values (True if the value is missing).
     """
@@ -221,7 +238,7 @@ def MAR_on_y(X: np.ndarray, y: np.ndarray, p: float, random_state: None | int | 
     mu = y.mean(0)
     var = (y - mu).T.dot(y - mu) / n
     coeffs = rng.randn(d)
-    v = np.array([coeffs[j] ** 2 * var for j in range(d)]) 
+    v = np.array([coeffs[j] ** 2 * var for j in range(d)])
     coeffs /= np.sqrt(v)
 
     # Move the intercept to have the desired amount of missing values
@@ -243,17 +260,24 @@ def MAR_on_y(X: np.ndarray, y: np.ndarray, p: float, random_state: None | int | 
     return mask
 
 
-def gaussian_sm(X: np.ndarray, sm_type: str, sm_params: dict, mean: np.ndarray, cov: np.ndarray, random_state: None | int | np.random.RandomState = None) -> np.ndarray:
+def gaussian_sm(
+    X: np.ndarray,
+    sm_type: str,
+    sm_params: dict,
+    mean: np.ndarray,
+    cov: np.ndarray,
+    random_state: None | int | np.random.RandomState = None,
+) -> np.ndarray:
     """
-    Simulate missingness according to a Gaussian self-masking model. 
-    
+    Simulate missingness according to a Gaussian self-masking model.
+
     Args:
         X: data for which missing values will be simulated.
         sm_type: type of selfmasking function used. One of `gaussian` or `probit`.
         sm_param: parameter for the selfmasking function.
             If `sm_type == 'gaussian'`, then `sm_param` is the parameter called
             `k` in the paper that controls the mean of the Gaussian selfmasking
-            function as well as `tmu` and `sigma2_tilde`, which can be derived 
+            function as well as `tmu` and `sigma2_tilde`, which can be derived
             from `k`. See also `gen_params`.
             If `sm_type == 'probit'`, then `sm_param`is the parameter called
             lambda`in the paper that controls the slope of the probit selfmasking
@@ -261,12 +285,12 @@ def gaussian_sm(X: np.ndarray, sm_type: str, sm_params: dict, mean: np.ndarray, 
             See also https://github.com/marineLM/Impute_then_Regress/blob/master/python/ground_truth.py
         mean: means of the data for which missing values will be simulated
         cov: covariance of the data for which missing values will be simulated
-        random_state: 
+        random_state:
             If int, random_state is the seed used by the random number generator;
             If RandomState instance, random_state is the random number generator;
             If None, the random number generator is the RandomState instance used
             by `np.random`.
-    
+
     Returns:
         mask: boolean mask of generated missing values (True if the value is missing).
     """
@@ -277,19 +301,16 @@ def gaussian_sm(X: np.ndarray, sm_type: str, sm_params: dict, mean: np.ndarray, 
 
     for j in range(d):
         X_j = X[:, j]
-        if sm_type == 'probit':
-            lam = sm_params['lambda']
-            c = sm_params['c'][j]
-            prob = norm.cdf(lam*X_j - c)
-        elif sm_type == 'gaussian':
-            k = sm_params['k']
-            sigma2_tilde = sm_params['sigma2_tilde'][j]
-            mu_tilde = mean[j] + k*sqrt(cov[j, j])
-            prob = np.exp(-0.5*(X_j - mu_tilde)**2/sigma2_tilde)
+        if sm_type == "probit":
+            lam = sm_params["lambda"]
+            c = sm_params["c"][j]
+            prob = norm.cdf(lam * X_j - c)
+        elif sm_type == "gaussian":
+            k = sm_params["k"]
+            sigma2_tilde = sm_params["sigma2_tilde"][j]
+            mu_tilde = mean[j] + k * sqrt(cov[j, j])
+            prob = np.exp(-0.5 * (X_j - mu_tilde) ** 2 / sigma2_tilde)
 
         mask[:, j] = rng.binomial(n=1, p=prob, size=len(X_j))
 
     return mask
-
-    
-

@@ -1,5 +1,5 @@
-'''This code imlpements early stopping and was taken from
-https://github.com/Bjarten/early-stopping-pytorch/blob/master/pytorchtools.py'''
+"""This code imlpements early stopping and was taken from
+https://github.com/Bjarten/early-stopping-pytorch/blob/master/pytorchtools.py"""
 
 import numpy as np
 from copy import deepcopy
@@ -7,15 +7,17 @@ from copy import deepcopy
 import torch
 from torch import nn
 
+
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a
     given patience.
-    
+
     Args:
         patience: how long to wait after last time validation loss improved. Defaults to 10.
         verbose: if True, prints a message for each validation loss improvement. Defaults to False.
         delta: minimum change in the monitored quantity to qualify as an improvement. Defaults to 1e-4.
     """
+
     def __init__(self, patience: int = 12, verbose: bool = False, delta: float = 1e-4):
         self.patience = patience
         self.verbose = verbose
@@ -41,7 +43,7 @@ class EarlyStopping:
         elif score < self.best_score + self.delta:
             self.counter += 1
             if self.verbose:
-                print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+                print(f"EarlyStopping counter: {self.counter} out of {self.patience}")
             if self.counter >= self.patience:
                 self.early_stop = True
         else:

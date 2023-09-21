@@ -1,4 +1,4 @@
-'''PyTorch MLP'''
+"""PyTorch MLP"""
 
 import math
 import numpy as np
@@ -19,8 +19,9 @@ class Mlp(nn.Module):
 
     Args:
         layer_sizes: the size of each layer of the MLP, including the input and output layer
-        init_type: how to initialise the weights. One of 'normal' or 'uniform'. 
+        init_type: how to initialise the weights. One of 'normal' or 'uniform'.
     """
+
     def __init__(self, layer_sizes: List[int], init_type: str):
         super().__init__()
         self.relu = nn.ReLU()
@@ -33,20 +34,20 @@ class Mlp(nn.Module):
         l_b_mlp = [torch.empty(d, dtype=torch.double) for d in layer_sizes[1:]]
 
         # Initialize randomly the parameters of the MLP
-        if init_type == 'normal':
+        if init_type == "normal":
             for W in l_W_mlp:
                 if len(W.shape) >= 2:
                     nn.init.xavier_normal_(W, gain=math.sqrt(2))
                 else:
-                    tmp = math.sqrt(2/(W.shape[0]+1))
+                    tmp = math.sqrt(2 / (W.shape[0] + 1))
                     nn.init.normal_(W, mean=0, std=tmp)
 
-        elif init_type == 'uniform':
+        elif init_type == "uniform":
             for W in l_W_mlp:
                 if len(W.shape) >= 2:
                     nn.init.xavier_uniform_(W, gain=math.sqrt(2))
                 else:
-                    tmp = math.sqrt(2*6/(W.shape[0]+1))
+                    tmp = math.sqrt(2 * 6 / (W.shape[0] + 1))
                     nn.init.uniform_(W, -tmp, tmp)
 
         for b_mlp in l_b_mlp:
@@ -55,12 +56,12 @@ class Mlp(nn.Module):
         # Make tensors learnable parameters
         self.l_W_mlp = [torch.nn.Parameter(W) for W in l_W_mlp]
         for i, W in enumerate(self.l_W_mlp):
-            self.register_parameter('W_mlp_{}'.format(i), W)
+            self.register_parameter("W_mlp_{}".format(i), W)
         self.l_b_mlp = [torch.nn.Parameter(b) for b in l_b_mlp]
         for i, b_mlp in enumerate(self.l_b_mlp):
-            self.register_parameter('b_mlp_{}'.format(i), b_mlp)
+            self.register_parameter("b_mlp_{}".format(i), b_mlp)
 
-    def forward(self, x: torch.Tensor, phase: str = 'train') -> torch.Tensor:
+    def forward(self, x: torch.Tensor, phase: str = "train") -> torch.Tensor:
         """
         Args:
             x: the (n, d) input data without missingness.
@@ -90,13 +91,23 @@ class MLP_reg(RegressorMixin):
         optimizer: one of `sgd`or `adam`.
         mlp_depth: the depth of the MLP.
         init_type: the type of initialisation for the parameters. Either 'normal', 'uniform'.
-        verbose: flag to print detailed information about training to the console. 
+        verbose: flag to print detailed information about training to the console.
     """
 
-    def __init__(self, width_factor: int = 1, n_epochs: int = 1000, batch_size: int = 100, 
-                 lr: float = 0.01, weight_decay: float = 1e-4, early_stopping: bool = False, 
-                 optimizer: str = 'sgd', mlp_depth: int = 0, init_type: str = 'normal', 
-                 is_mask: bool = False, verbose: bool = False):
+    def __init__(
+        self,
+        width_factor: int = 1,
+        n_epochs: int = 1000,
+        batch_size: int = 100,
+        lr: float = 0.01,
+        weight_decay: float = 1e-4,
+        early_stopping: bool = False,
+        optimizer: str = "sgd",
+        mlp_depth: int = 0,
+        init_type: str = "normal",
+        is_mask: bool = False,
+        verbose: bool = False,
+    ):
         self.width_factor = width_factor
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -114,7 +125,13 @@ class MLP_reg(RegressorMixin):
         self.r2_val = []
         self.mse_val = []
 
-    def fit(self, X: np.ndarray, y: np.ndarray, X_val: np.ndarray | None = None, y_val: np.ndarray | None = None):
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        X_val: np.ndarray | None = None,
+        y_val: np.ndarray | None = None,
+    ):
         """Training routine for the MLP
 
         Args:
@@ -133,13 +150,13 @@ class MLP_reg(RegressorMixin):
             n_samples, n_features_all = X.shape
 
         if self.is_mask:
-            n_features = n_features_all//2
+            n_features = n_features_all // 2
         else:
             n_features = n_features_all
 
         layer_sizes = tuple(
-            [n_features_all] +
-            [self.width_factor*n_features]*self.mlp_depth + [1])
+            [n_features_all] + [self.width_factor * n_features] * self.mlp_depth + [1]
+        )
 
         X = torch.as_tensor(X, dtype=torch.double)
         y = torch.as_tensor(y, dtype=torch.double)
@@ -150,16 +167,18 @@ class MLP_reg(RegressorMixin):
 
         self.net = Mlp(layer_sizes, init_type=self.init_type)
 
-        if self.optimizer == 'sgd':
-            self.optimizer = optim.SGD(self.net.parameters(), lr=self.lr,
-                                       weight_decay=self.weight_decay)
-        elif self.optimizer == 'adam':
-            self.optimizer = optim.Adam(self.net.parameters(), lr=self.lr,
-                                        weight_decay=self.weight_decay)
+        if self.optimizer == "sgd":
+            self.optimizer = optim.SGD(
+                self.net.parameters(), lr=self.lr, weight_decay=self.weight_decay
+            )
+        elif self.optimizer == "adam":
+            self.optimizer = optim.Adam(
+                self.net.parameters(), lr=self.lr, weight_decay=self.weight_decay
+            )
 
         self.scheduler = ReduceLROnPlateau(
-                            self.optimizer, mode='min', factor=0.2,
-                            patience=10, threshold=1e-4)
+            self.optimizer, mode="min", factor=0.2, patience=10, threshold=1e-4
+        )
 
         if self.early_stop and X_val is not None:
             early_stopping = EarlyStopping(verbose=self.verbose)
@@ -179,11 +198,13 @@ class MLP_reg(RegressorMixin):
 
             # Shuffle tensors to have different batches at each epoch
             ind = torch.randperm(n_samples)
-            xx = torch.split(X_epoch[ind], split_size_or_sections=self.batch_size, dim=0)
+            xx = torch.split(
+                X_epoch[ind], split_size_or_sections=self.batch_size, dim=0
+            )
             yy = torch.split(y[ind], split_size_or_sections=self.batch_size, dim=0)
 
             param_group = self.optimizer.param_groups[0]
-            lr = param_group['lr']
+            lr = param_group["lr"]
             if self.verbose:
                 print("Current learning rate is: {}".format(lr))
             if lr < 1e-4:
@@ -203,13 +224,13 @@ class MLP_reg(RegressorMixin):
 
             # Evaluate the train loss
             with torch.no_grad():
-                y_hat = self.net(X_epoch, phase='test')
+                y_hat = self.net(X_epoch, phase="test")
                 loss = criterion(y_hat, y)
                 mse = loss.item()
                 self.mse_train.append(mse)
 
-                var = ((y - y.mean())**2).mean()
-                r2 = 1 - mse/var
+                var = ((y - y.mean()) ** 2).mean()
+                r2 = 1 - mse / var
                 self.r2_train.append(r2)
 
                 if self.verbose:
@@ -218,7 +239,7 @@ class MLP_reg(RegressorMixin):
             # Evaluate the validation loss
             if X_val is not None:
                 with torch.no_grad():
-                    y_hat = self.net(X_val, phase='test')
+                    y_hat = self.net(X_val, phase="test")
 
                     if multi_impute:
                         y_hat = y_hat.reshape(n_val, n_imputes).mean(dim=1)
@@ -227,11 +248,13 @@ class MLP_reg(RegressorMixin):
                     mse_val = loss_val.item()
                     self.mse_val.append(mse_val)
 
-                    var = ((y_val - y_val.mean())**2).mean()
-                    r2_val = 1 - mse_val/var
+                    var = ((y_val - y_val.mean()) ** 2).mean()
+                    r2_val = 1 - mse_val / var
                     self.r2_val.append(r2_val)
                     if self.verbose:
-                        print("Validation loss - r2: {}, mse: {}".format(r2_val, mse_val))
+                        print(
+                            "Validation loss - r2: {}, mse: {}".format(r2_val, mse_val)
+                        )
 
                 if self.early_stop:
                     early_stopping(mse_val, self.net)
@@ -264,7 +287,7 @@ class MLP_reg(RegressorMixin):
         X = torch.as_tensor(X, dtype=torch.double)
 
         with torch.no_grad():
-            y_hat = self.net(X, phase='test')
+            y_hat = self.net(X, phase="test")
 
         if multi_impute:
             y_hat = y_hat.reshape(n_samples, n_imputes).mean(dim=1)

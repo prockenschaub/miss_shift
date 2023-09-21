@@ -1,4 +1,4 @@
-'''NeuMiss + MLP'''
+"""NeuMiss + MLP"""
 import numpy as np
 from sklearn.base import BaseEstimator
 
@@ -15,17 +15,23 @@ from ..networks.neumiss import NeuMissBlock
 
 class NeuMissMLP(nn.Module):
     """A NeuMiss block followed by an MLP.
-    
+
     Args:
         n_features : dimension of inputs.
         neumiss_depth : number of layers in the NeuMiss block.
         mlp_depth : number of hidden layers in the MLP.
         mlp_width : width of the MLP. If None take mlp_width=n_features. Default: None.
-        dtype : Pytorch dtype for the parameters. Default: torch.float.    
+        dtype : Pytorch dtype for the parameters. Default: torch.float.
     """
 
-    def __init__(self, n_features: int, neumiss_depth: int, mlp_depth: int,
-                 mlp_width: int = None, dtype=torch.float):
+    def __init__(
+        self,
+        n_features: int,
+        neumiss_depth: int,
+        mlp_depth: int,
+        mlp_width: int = None,
+        dtype=torch.float,
+    ):
         super().__init__()
         self.n_features = n_features
         self.neumiss_depth = neumiss_depth
@@ -38,14 +44,15 @@ class NeuMissMLP(nn.Module):
         last_layer_width = mlp_width if b else n_features
         self.layers = Sequential(
             NeuMissBlock(n_features, neumiss_depth, dtype),
-            *[Linear(n_features, mlp_width, dtype=dtype), ReLU()]*b,
-            *[Linear(mlp_width, mlp_width, dtype=dtype), ReLU()]*b*(mlp_depth-1),
+            *[Linear(n_features, mlp_width, dtype=dtype), ReLU()] * b,
+            *[Linear(mlp_width, mlp_width, dtype=dtype), ReLU()] * b * (mlp_depth - 1),
             *[Linear(last_layer_width, 1, dtype=dtype)],
         )
 
     def forward(self, x: Tensor) -> Tensor:
         out = self.layers(x)
         return out.squeeze()
+
 
 class Neumiss(BaseEstimator):
     """Predict with a Neumiss block followed by an MLP
@@ -64,13 +71,23 @@ class Neumiss(BaseEstimator):
         width_factor: the width of the MLP stacked on top of the NeuMiss block is calculated
             as width_factor times n_features.
         add_mask: if True, the mask is concatenated to the output of the NeuMiss block.
-        verbose: flag to print detailed information about training to the console. 
+        verbose: flag to print detailed information about training to the console.
     """
 
-    def __init__(self, depth: int, n_epochs: int = 1000, batch_size: int = 100, 
-                 lr: float = 0.01, weight_decay: float = 1e-4, early_stopping: bool = False, 
-                 optimizer: str = 'sgd', mlp_depth: int = 0, width_factor: int = 1,
-                 add_mask: bool = False, verbose: bool = False):
+    def __init__(
+        self,
+        depth: int,
+        n_epochs: int = 1000,
+        batch_size: int = 100,
+        lr: float = 0.01,
+        weight_decay: float = 1e-4,
+        early_stopping: bool = False,
+        optimizer: str = "sgd",
+        mlp_depth: int = 0,
+        width_factor: int = 1,
+        add_mask: bool = False,
+        verbose: bool = False,
+    ):
         self.depth = depth
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -99,36 +116,44 @@ class Neumiss(BaseEstimator):
             X_val = torch.as_tensor(X_val, dtype=torch.double)
             y_val = torch.as_tensor(y_val, dtype=torch.double)
 
-        self.net = NeuMissMLP(n_features=n_features,
-                           neumiss_depth=self.depth,
-                           mlp_depth=self.mlp_depth,
-                           mlp_width=self.width_factor, 
-                           dtype=torch.double)
+        self.net = NeuMissMLP(
+            n_features=n_features,
+            neumiss_depth=self.depth,
+            mlp_depth=self.mlp_depth,
+            mlp_width=self.width_factor,
+            dtype=torch.double,
+        )
 
         if len(list(self.net.parameters())) > 0:
             # Create parameter groups
             group_wd = []
             group_no_wd = []
             for name, param in self.net.named_parameters():
-                if name in ['mu', 'b']:
+                if name in ["mu", "b"]:
                     group_no_wd.append(param)
                 else:
                     group_wd.append(param)
 
-            if self.optimizer == 'sgd':
+            if self.optimizer == "sgd":
                 self.optimizer = optim.SGD(
-                    [{'params': group_wd, 'weight_decay': self.weight_decay},
-                     {'params': group_no_wd, 'weight_decay': 0}],
-                    lr=self.lr)
-            elif self.optimizer == 'adam':
+                    [
+                        {"params": group_wd, "weight_decay": self.weight_decay},
+                        {"params": group_no_wd, "weight_decay": 0},
+                    ],
+                    lr=self.lr,
+                )
+            elif self.optimizer == "adam":
                 self.optimizer = optim.Adam(
-                    [{'params': group_wd, 'weight_decay': self.weight_decay},
-                     {'params': group_no_wd, 'weight_decay': 0}],
-                    lr=self.lr)
+                    [
+                        {"params": group_wd, "weight_decay": self.weight_decay},
+                        {"params": group_no_wd, "weight_decay": 0},
+                    ],
+                    lr=self.lr,
+                )
 
             self.scheduler = ReduceLROnPlateau(
-                            self.optimizer, mode='min', factor=0.2,
-                            patience=10, threshold=1e-4)
+                self.optimizer, mode="min", factor=0.2, patience=10, threshold=1e-4
+            )
 
         if self.early_stop and X_val is not None:
             early_stopping = EarlyStopping(verbose=self.verbose)
@@ -149,7 +174,7 @@ class Neumiss(BaseEstimator):
             yy = torch.split(y, split_size_or_sections=self.batch_size, dim=0)
 
             param_group = self.optimizer.param_groups[0]
-            lr = param_group['lr']
+            lr = param_group["lr"]
             if self.verbose:
                 print("Current learning rate is: {}".format(lr))
             if lr < 1e-4:
@@ -174,8 +199,8 @@ class Neumiss(BaseEstimator):
                 mse = loss.item()
                 self.mse_train.append(mse)
 
-                var = ((y - y.mean())**2).mean()
-                r2 = 1 - mse/var
+                var = ((y - y.mean()) ** 2).mean()
+                r2 = 1 - mse / var
                 self.r2_train.append(r2)
 
                 if self.verbose:
@@ -189,8 +214,8 @@ class Neumiss(BaseEstimator):
                     mse_val = loss_val.item()
                     self.mse_val.append(mse_val)
 
-                    var = ((y_val - y_val.mean())**2).mean()
-                    r2_val = 1 - mse_val/var
+                    var = ((y_val - y_val.mean()) ** 2).mean()
+                    r2_val = 1 - mse_val / var
                     self.r2_val.append(r2_val)
                     if self.verbose:
                         print("Validation loss is: {}".format(r2_val))
@@ -223,4 +248,3 @@ class Neumiss(BaseEstimator):
             y_hat = self.net(X)
 
         return np.array(y_hat)
-    

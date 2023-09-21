@@ -1,6 +1,6 @@
-'''This file implements the MIWAE algorithm. It was inspired from
+"""This file implements the MIWAE algorithm. It was inspired from
 https://github.com/pamattei/miwae/blob/master/Pytorch%20notebooks/MIWAE_Pytorch_exercises_demo_ProbAI.ipynb
-'''
+"""
 
 import torch
 from torch import nn
@@ -15,12 +15,15 @@ def weights_init(layer) -> None:
 class MIWAE(nn.Module):
     """Missing data importance-weighted autoencoder
 
-    Args: 
+    Args:
         n_inputs: number of covariates
         width: size of the intermediate layers of the autoencoder
         latent_size: size of the latent space
     """
-    def __init__(self, n_inputs: int, width: int, latent_size: int, *args, **kwargs) -> None:
+
+    def __init__(
+        self, n_inputs: int, width: int, latent_size: int, *args, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.n_inputs = n_inputs
@@ -57,7 +60,9 @@ class MIWAE(nn.Module):
         self.encoder.apply(weights_init)
         self.decoder.apply(weights_init)
 
-    def forward(self, iota_x: torch.Tensor, mask: torch.Tensor, L: int) -> torch.Tensor | tuple:
+    def forward(
+        self, iota_x: torch.Tensor, mask: torch.Tensor, L: int
+    ) -> torch.Tensor | tuple:
         """_summary_
 
         Args:
@@ -67,11 +72,11 @@ class MIWAE(nn.Module):
 
         Returns:
             If L == 0: the predicted means of `x`
-            If L > 0: a tuple with the distribution of `x` conditional on `z`, the log probability of 
-                `x_obs` conditional on `z`, the log probability of `z`, and log q of `z` given `x_obs` 
+            If L > 0: a tuple with the distribution of `x` conditional on `z`, the log probability of
+                `x_obs` conditional on `z`, the log probability of `z`, and log q of `z` given `x_obs`
         """
         out_encoder = self.encoder(iota_x)
-        
+
         if L > 0:
             q_zgivenxobs = td.Independent(
                 td.Normal(
@@ -89,9 +94,10 @@ class MIWAE(nn.Module):
             zgivenx_flat = out_encoder[..., : self.latent_size]
 
         out_decoder = self.decoder(zgivenx_flat)
-        all_means_obs_model = out_decoder[..., :self.n_inputs]
+        all_means_obs_model = out_decoder[..., : self.n_inputs]
         all_scales_obs_model = (
-            torch.nn.Softplus()(out_decoder[..., self.n_inputs : (2 * self.n_inputs)]) + 0.001
+            torch.nn.Softplus()(out_decoder[..., self.n_inputs : (2 * self.n_inputs)])
+            + 0.001
         )
 
         if L > 0:
@@ -100,21 +106,16 @@ class MIWAE(nn.Module):
 
             all_log_pxgivenz_flat = td.Normal(
                 loc=all_means_obs_model.reshape([-1, 1]),
-                scale=all_scales_obs_model.reshape([-1, 1])
+                scale=all_scales_obs_model.reshape([-1, 1]),
             ).log_prob(data_flat)
             all_log_pxgivenz = all_log_pxgivenz_flat.reshape([-1, self.n_inputs])
 
-            logpxobsgivenz = torch.sum(all_log_pxgivenz * tiledmask, 1).reshape(
-                [L, -1]
-            )
+            logpxobsgivenz = torch.sum(all_log_pxgivenz * tiledmask, 1).reshape([L, -1])
             logpz = self.p_z.log_prob(zgivenx)
             logq = q_zgivenxobs.log_prob(zgivenx)
 
             xgivenz = td.Independent(
-                td.Normal(
-                    loc=all_means_obs_model,
-                    scale=all_scales_obs_model
-                ),
+                td.Normal(loc=all_means_obs_model, scale=all_scales_obs_model),
                 1,
             )
 
@@ -122,4 +123,3 @@ class MIWAE(nn.Module):
         else:
             xgivenz = all_means_obs_model
             return xgivenz
-

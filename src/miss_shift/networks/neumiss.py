@@ -5,10 +5,11 @@ from torch.nn import Linear, Parameter, Sequential
 
 class Mask(nn.Module):
     """A mask non-linearity.
-    
-    Args: 
+
+    Args:
         input: the input from which to create the mask
     """
+
     mask: Tensor
 
     def __init__(self, input: Tensor):
@@ -24,15 +25,16 @@ class Mask(nn.Module):
         Returns:
             the masked input
         """
-        return ~self.mask*input
+        return ~self.mask * input
 
 
 class SkipConnection(nn.Module):
     """A skip connection operation.
-    
-    Args: 
+
+    Args:
         value: the value to add in the skipping
     """
+
     value: Tensor
 
     def __init__(self, value: Tensor):
@@ -40,13 +42,13 @@ class SkipConnection(nn.Module):
         self.value = value
 
     def forward(self, input: Tensor) -> Tensor:
-        """Add the value coming through the skip connection to the input 
+        """Add the value coming through the skip connection to the input
 
         Args:
             input: current input
 
         Returns:
-            the input plus the skip connection 
+            the input plus the skip connection
         """
         return input + self.value
 
@@ -55,15 +57,14 @@ class NeuMissBlock(nn.Module):
     """The NeuMiss block from "What’s a good imputation to predict with
     missing values?" by Marine Le Morvan, Julie Josse, Erwan Scornet,
     Gael Varoquaux.
-    
+
     Args:
         n_features : dimension of inputs and outputs of the NeuMiss block.
         depth : number of layers (Neumann iterations) in the NeuMiss block.
         dtype : Pytorch dtype for the parameters. Default: torch.float.
     """
 
-    def __init__(self, n_features: int, depth: int,
-                 dtype=torch.float) -> None:
+    def __init__(self, n_features: int, depth: int, dtype=torch.float) -> None:
         super().__init__()
         self.depth = depth
         self.dtype = dtype
@@ -87,16 +88,14 @@ class NeuMissBlock(nn.Module):
         skip = SkipConnection(h)  # Initialize skip connection with this value
 
         layer = [self.linear, mask, skip]  # One Neumann iteration
-        layers = Sequential(*(layer*self.depth))  # Neumann block
+        layers = Sequential(*(layer * self.depth))  # Neumann block
 
         return layers(h)
 
     def reset_parameters(self) -> None:
-        """Initialies parameters
-        """
+        """Initialies parameters"""
         nn.init.normal_(self.mu)
         nn.init.xavier_uniform_(self.linear.weight, gain=0.5)
 
     def extra_repr(self) -> str:
-        return 'depth={}'.format(self.depth)
-    
+        return "depth={}".format(self.depth)

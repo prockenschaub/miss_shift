@@ -9,6 +9,7 @@ from ..misc.pytorchtools import EarlyStopping
 from ..networks.miwae import MIWAE
 from ..networks.mlp import MLP_reg
 
+
 class MIWAEMLP(BaseEstimator):
     """Imputes with MIWAE and then runs an MLP on the imputed data.
 
@@ -19,10 +20,10 @@ class MIWAEMLP(BaseEstimator):
         K: number of samples to draw during training
         n_draws: number of imputations to draw during inference
         add_mask: whether or not to concatenate the mask with the data
-        mode: training mode. If 'joint', MIWAE and the MLP are trained together. 
+        mode: training mode. If 'joint', MIWAE and the MLP are trained together.
             However, this is computationally intensive, since for each MLP
-            configuration, a new MIWAE must be trained. Since the same MIWAE may 
-            be used for different MLP configurations, we can also train MIWAE 
+            configuration, a new MIWAE must be trained. Since the same MIWAE may
+            be used for different MLP configurations, we can also train MIWAE
             separately and then mix and match. One can do so via 'imputer-only'
             or 'predictor-only'. Defaults to 'joint'.
         save_dir: if mode == 'imputer-only', file path where to store the pretrained
@@ -30,9 +31,20 @@ class MIWAEMLP(BaseEstimator):
         device: device on which to train. Defaults to 'cpu'.
         mlp_params: the dictionary containing the parameters for the MLP
     """
-    def __init__(self, input_size: int, encoder_width: int, latent_size: int, K: int = 20, n_draws: int = 5,
-                 add_mask: bool = False, mode: str = 'joint', save_dir: str = 'tmp', device: str = 'cpu', 
-                 **mlp_params):
+
+    def __init__(
+        self,
+        input_size: int,
+        encoder_width: int,
+        latent_size: int,
+        K: int = 20,
+        n_draws: int = 5,
+        add_mask: bool = False,
+        mode: str = "joint",
+        save_dir: str = "tmp",
+        device: str = "cpu",
+        **mlp_params,
+    ):
         self.input_size = input_size
         self.encoder_width = encoder_width
         self.latent_size = latent_size
@@ -40,17 +52,19 @@ class MIWAEMLP(BaseEstimator):
         self.n_draws = n_draws
 
         self.mlp_params = mlp_params
-        self.n_epochs = mlp_params.get('n_epochs', 100)
-        self.batch_size = mlp_params.get('batch_size', 32)
-        self.weight_decay = mlp_params.get('weight_decay', 0)
-        self.lr = mlp_params.get('lr', 1.e-3)
-        self.verbose = mlp_params.get('verbose', False)
-        self.early_stop = mlp_params.get('early_stopping', False)
-        
+        self.n_epochs = mlp_params.get("n_epochs", 100)
+        self.batch_size = mlp_params.get("batch_size", 32)
+        self.weight_decay = mlp_params.get("weight_decay", 0)
+        self.lr = mlp_params.get("lr", 1.0e-3)
+        self.verbose = mlp_params.get("verbose", False)
+        self.early_stop = mlp_params.get("early_stopping", False)
+
         self.add_mask = add_mask
 
         self.mode = mode
-        self.save_path = f'{save_dir}/miwae_{input_size}_{encoder_width}_{latent_size}_{K}.pt'
+        self.save_path = (
+            f"{save_dir}/miwae_{input_size}_{encoder_width}_{latent_size}_{K}.pt"
+        )
         self.device = device
 
         self._imp = MIWAE(input_size, encoder_width, latent_size)
@@ -79,7 +93,7 @@ class MIWAEMLP(BaseEstimator):
         Args:
             iota_x: zero-imputed covariates
             mask: mask indicating the missing values in the covariates
-            L: number of candidates to draw for imputation, which will be combined 
+            L: number of candidates to draw for imputation, which will be combined
                 based on their importance weights
 
         Returns:
@@ -121,7 +135,7 @@ class MIWAEMLP(BaseEstimator):
 
         xhat_0 = torch.clone(X)
         xhat_0[np.isnan(X.cpu()).bool()] = 0
-        
+
         if X_val is not None:
             X_val = torch.from_numpy(X_val).float().to(self.device)
             mask_val = np.isfinite(X_val.cpu()).bool().to(self.device)
@@ -132,11 +146,14 @@ class MIWAEMLP(BaseEstimator):
         n = X.shape[0]  # number of observations
         p = X.shape[1]  # number of features
 
-        optimizer = optim.Adam(self._imp.parameters(), lr=self.lr,)
+        optimizer = optim.Adam(
+            self._imp.parameters(),
+            lr=self.lr,
+        )
 
         self.scheduler = ReduceLROnPlateau(
-                            optimizer, mode='min', factor=0.2,
-                            patience=5, threshold=1e-4)
+            optimizer, mode="min", factor=0.2, patience=5, threshold=1e-4
+        )
 
         if self.early_stop and X_val is not None:
             early_stopping = EarlyStopping(verbose=self.verbose)
@@ -177,10 +194,18 @@ class MIWAEMLP(BaseEstimator):
             # Evaluate the validation loss
             if X_val is not None:
                 with torch.no_grad():
-                    loss_val = self._miwae_loss(iota_x=xhat_0_val, mask=mask_val).cpu().data.numpy()
-            
+                    loss_val = (
+                        self._miwae_loss(iota_x=xhat_0_val, mask=mask_val)
+                        .cpu()
+                        .data.numpy()
+                    )
+
                     if self.verbose:
-                        print("Epoch {} - MIWAE validation loss is: {}".format(ep, loss_val))
+                        print(
+                            "Epoch {} - MIWAE validation loss is: {}".format(
+                                ep, loss_val
+                            )
+                        )
 
                 if self.early_stop:
                     early_stopping(loss_val, self._imp)
@@ -190,7 +215,6 @@ class MIWAEMLP(BaseEstimator):
                         break
 
                 self.scheduler.step(loss_val)
-
 
     def concat_mask(self, X: np.ndarray, T: np.ndarray) -> np.ndarray:
         """Concatenate the missingness indicators to the imputed covariates
@@ -223,14 +247,16 @@ class MIWAEMLP(BaseEstimator):
         """
         X = torch.from_numpy(X).float().to(self.device)
         mask = np.isfinite(X.cpu()).bool().to(self.device)
-        
+
         xhat_0 = torch.clone(X)
         xhat_0[np.isnan(X.cpu()).bool()] = 0
 
         if self.n_draws == 0:
             # Perform imputation with the conditional expectation
             with torch.no_grad():
-                xhat_0[~mask] = self._conditional_impute(iota_x=xhat_0, mask=mask)[~mask]
+                xhat_0[~mask] = self._conditional_impute(iota_x=xhat_0, mask=mask)[
+                    ~mask
+                ]
             return xhat_0
         else:
             # Perform imputation by drawing from the conditional distribution
@@ -238,27 +264,37 @@ class MIWAEMLP(BaseEstimator):
             for _ in range(self.n_draws):
                 with torch.no_grad():
                     xhat = torch.clone(xhat_0)
-                    xhat[~mask] = self._miwae_impute(iota_x=xhat_0, mask=mask, L=10,)[~mask]
+                    xhat[~mask] = self._miwae_impute(
+                        iota_x=xhat_0,
+                        mask=mask,
+                        L=10,
+                    )[~mask]
                     T.append(xhat.numpy())
             return np.stack(T)
 
-    def fit(self, X: np.ndarray, y: np.ndarray, X_val: np.ndarray = None, y_val: np.ndarray = None):
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        X_val: np.ndarray = None,
+        y_val: np.ndarray = None,
+    ):
         """First train MIWAE (or load a pretrained model) and then train the MLP
 
         Args:
             X: original (n, d) covariates w/ missingness
-            y: original (n, ) outcomes 
+            y: original (n, ) outcomes
             X_val: optional covariates w/ missingness that are passively imputed. Defaults to None.
             y_val: optional outcomes that may be used for passively imputed. Defaults to None.
         """
-        if self.mode in ['join', 'imputer-only']:
+        if self.mode in ["join", "imputer-only"]:
             self._train_imputer(X, X_val)
-            if self.mode == 'imputer-only':
+            if self.mode == "imputer-only":
                 torch.save(self._imp.state_dict(), self.save_path)
-        else: 
+        else:
             self._imp.load_state_dict(torch.load(self.save_path))
-        
-        if self.mode in ['joint', 'predictor-only']:
+
+        if self.mode in ["joint", "predictor-only"]:
             T = self.impute(X)
             T_val = self.impute(X_val)
 
