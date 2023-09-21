@@ -9,7 +9,7 @@ class BayesPredictor_GSM_nonlinear(BaseEstimator):
     """Bayes predicor for multivariate normal data with Gaussian self-masking.
 
     Args:
-        data_params: 8-tuple defining the data generation mechanism. The following elements are used
+        data_params: 9-tuple defining the data generation mechanism. The following elements are used
             (_, mu, cov, beta, masking_params, _, link, _, curvature)
         order0: flag specifying whether an order 0 approximation should be used (=conditional oracle).
             Defaults to False.
@@ -17,7 +17,7 @@ class BayesPredictor_GSM_nonlinear(BaseEstimator):
 
     def __init__(self, data_params: tuple, order0: bool = False):
 
-        _, _, _, _, masking_params, _, _, _ = data_params
+        _, _, _, _, masking_params, _, _, _, _ = data_params
 
         if masking_params["sm_type"] == "probit":
             raise ValueError(
@@ -109,7 +109,7 @@ class BayesPredictor_MCAR_MAR_nonlinear(BaseEstimator):
     """Bayes predictor for multivariate normal data with MCAR or MAR missingness mechanisms.
 
     Args:
-        data_params: 8-tuple defining the data generation mechanism. The following elements are used
+        data_params: 9-tuple defining the data generation mechanism. The following elements are used
             (_, mu, sigma, beta, _, _, link, _, curvature)
         order0: flag specifying whether an order 0 approximation should be used (=conditional oracle).
             Defaults to False.
