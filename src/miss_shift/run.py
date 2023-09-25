@@ -158,6 +158,7 @@ def run_one(
         elif "miwae" in method:
             save_dir = os.path.join(
                 tmp_dir,
+                mdm,
                 "miwae",
                 f"n={n}",
                 f'prop_latent={data_desc["prop_latent"]}',
