@@ -5,10 +5,16 @@
 If you use this code in your research, please cite the following publication:
 
 ```
-
+@misc{rockenschaub2024robust,
+      title={Robust prediction under missingness shifts}, 
+      author={Patrick Rockenschaub and Zhicong Xian and Alireza Zamanian and Marta Piperno and Octavia-Andreea Ciora and Elisabeth Pachl and Narges Ahmidi},
+      year={2024},
+      eprint={2406.16484},
+      archivePrefix={arXiv}
+}
 ```
 
-This paper can be found on arxiv: **TBD**
+This paper can be found on arxiv: [https://arxiv.org/abs/2406.16484](https://arxiv.org/abs/2406.16484)
 
 ## Acknowledgements
 
